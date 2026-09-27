@@ -170,3 +170,16 @@ Choose **Snooze → Custom…** from a thread's menu to pick a date and time in 
 local time zone, or a duration in minutes, hours, or days. Durations start when
 you confirm; one day means 24 hours. On web and desktop, you can also snooze
 several selected threads together. Choose **Wake thread** to bring a thread back early.
+
+## Bring in desktop conversations
+
+On web or desktop, open **Project settings → Desktop chats → Find desktop chats**.
+In the project-tree sidebar, the same action is available by right-clicking a project.
+It finds recent local Claude Code and Codex sessions for that project folder,
+including sessions created after initial setup, and repairs initial imported names
+using the desktop conversation titles. Names you edited in Harness are preserved.
+
+Imports show a snapshot of conversation text. This action does not continuously
+mirror desktop activity, replace existing imported history, or resume an agent.
+Continue a session in one app at a time. Sessions stored only in the cloud are
+not included in local discovery.

@@ -132,6 +132,7 @@ export const importRecentAgentThreads = Effect.fn("importRecentAgentThreads")(fu
   const threads = scanner.recentThreads(
     workspaceRoot,
     completedSources.map((entry) => entry.source),
+    input.refreshTitles ?? false,
   );
   const importedThreadIds = new Set<ThreadId>();
   let importedCount = 0;
@@ -200,6 +201,23 @@ export const importRecentAgentThreads = Effect.fn("importRecentAgentThreads")(fu
           importedHistoryPresent &&
           Option.isSome(existingBinding)
         ) {
+          // Repair initial imported labels without overwriting a Harness rename or
+          // touching a conversation that has since been used here.
+          const existing = existingThread.value;
+          if (
+            input.refreshTitles &&
+            existingBinding.value.status === "stopped" &&
+            !hasImportBlockingActivity(existing, true) &&
+            existing.titleState?.source !== "manual" &&
+            existing.title !== thread.title
+          ) {
+            yield* engine.dispatch({
+              type: "thread.meta.update",
+              commandId: CommandId.make(yield* crypto.randomUUIDv4),
+              threadId,
+              title: thread.title,
+            });
+          }
           yield* directory.recordImportedTranscript({ threadId, source: outcome.source });
           return true;
         }

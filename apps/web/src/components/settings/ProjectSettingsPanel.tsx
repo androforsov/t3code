@@ -13,6 +13,7 @@ import * as Cause from "effect/Cause";
 import { InfoIcon, Trash2Icon } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useImportDesktopChats } from "../../hooks/useImportDesktopChats";
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { releaseProjectDraftUploads } from "../../lib/composerDraftUploads";
 import { readLocalApi } from "../../localApi";
@@ -384,6 +385,8 @@ function ProjectDetail({
     ],
   );
 
+  const { findChats, isImporting } = useImportDesktopChats();
+
   const checkoutChoices = (
     <SettingsSection title="Checkouts">
       {group.memberProjects.map((member) => (
@@ -492,6 +495,25 @@ function ProjectDetail({
         <ProjectDefaultsSettings category="project" />
         <ProjectActionsSettings />
         {hasMultipleCheckouts ? checkoutChoices : null}
+        <SettingsSection title="Desktop chats">
+          {group.memberProjects.map((member) => (
+            <SettingsRow
+              key={member.physicalProjectKey}
+              title="Find Claude and Codex chats"
+              description={`Import recent local sessions from ${member.workspaceRoot}. Repair initial imported names. Existing histories stay as snapshots; active desktop chats are not live-synced or resumed.`}
+              control={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isImporting}
+                  onClick={() => void findChats(member)}
+                >
+                  {isImporting ? "Checking…" : "Find desktop chats"}
+                </Button>
+              }
+            />
+          ))}
+        </SettingsSection>
         <SettingsSection title="Danger">
           <SettingsRow
             title={

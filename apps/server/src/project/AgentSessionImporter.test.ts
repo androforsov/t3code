@@ -440,6 +440,72 @@ it.layer(NodeServices.layer)("AgentSessionImporter", (it) => {
       }),
     );
 
+    it.effect(
+      "repairs initial imported names while preserving Harness edits and used conversations",
+      () =>
+        Effect.gen(function* () {
+          for (const state of ["untouched", "renamed", "used", "running"] as const) {
+            const original = makeProjectedThread({
+              source: "codex",
+              imported: true,
+              includeFollowup: state === "used",
+            });
+            const existing: OrchestrationThread = {
+              ...original,
+              title: state === "renamed" ? "My name" : "# AGENTS.md instructions",
+              settledOverride: "settled",
+              titleState:
+                state === "renamed"
+                  ? { source: "manual", version: CommandId.make("rename"), needsRefinement: false }
+                  : null,
+            };
+            const dispatched: OrchestrationCommand[] = [];
+            yield* importRecentAgentThreads({ projectId: PROJECT_ID, refreshTitles: true }).pipe(
+              Effect.provideService(AgentSessionScanner.AgentSessionScanner, {
+                scan: Effect.die("unused"),
+                recentThreads: () =>
+                  Stream.succeed(
+                    makeThreadOutcome({ ...makeThread("codex"), title: "EP Plan Design" }),
+                  ),
+              }),
+              Effect.provide(
+                Layer.mock(OrchestrationEngine.OrchestrationEngineService)({
+                  dispatch: (command) => {
+                    dispatched.push(command);
+                    return Effect.succeed({ sequence: 1 });
+                  },
+                }),
+              ),
+              Effect.provide(
+                Layer.mock(ProviderSessionDirectory.ProviderSessionDirectory)({
+                  getBinding: () =>
+                    Effect.succeedSome({
+                      threadId: existing.id,
+                      provider: ProviderDriverKind.make("codex"),
+                      providerInstanceId: ProviderInstanceId.make("codex"),
+                      status: state === "running" ? "running" : "stopped",
+                    }),
+                  recordImportedTranscript: () => Effect.void,
+                }),
+              ),
+              Effect.provide(
+                makeSnapshotsLayer({
+                  project: makeProject(),
+                  getThread: () => Option.some(existing),
+                }),
+              ),
+            );
+            if (state === "untouched") {
+              expect(dispatched).toEqual([
+                expect.objectContaining({ type: "thread.meta.update", title: "EP Plan Design" }),
+              ]);
+            } else {
+              expect(dispatched).toEqual([]);
+            }
+          }
+        }),
+    );
+
     it.effect("does not replace completed history or an active binding on retry", () =>
       Effect.gen(function* () {
         const scanner = AgentSessionScanner.AgentSessionScanner.of({

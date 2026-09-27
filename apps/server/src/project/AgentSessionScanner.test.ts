@@ -1411,7 +1411,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
             workspaceRoot: workspace,
           });
           expect(outcomes.map((outcome) => outcome._tag)).toEqual(
-            overflow ? ["Skipped", "Importable"] : ["Importable", "Skipped"],
+            overflow ? ["Skipped", "Importable"] : ["Importable", "Importable"],
           );
           expect(
             outcomes.flatMap((outcome) =>
@@ -1419,7 +1419,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
                 ? outcome.thread.messages.map((message) => message.text)
                 : [],
             ),
-          ).toEqual([overflow ? "Older prompt" : "First prompt"]);
+          ).toEqual(overflow ? ["Older prompt"] : ["First prompt", "Older prompt"]);
         }),
     );
 
@@ -1936,6 +1936,37 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
             .recentThreads(workspace, [{ ...imported.source, provider: "claudeAgent" }])
             .pipe(Stream.runCollect);
           expect(wrongProvider[0]?._tag).toBe("Importable");
+          yield* fileSystem.writeFileString(
+            path.join(codexHomePath, "session_index.jsonl"),
+            encodeTranscriptRecord({ id: "original-session", thread_name: "Desktop rename" }),
+          );
+          yield* writeTranscript({
+            filePath: path.join(path.dirname(filePath), "rollout-new.jsonl"),
+            contents: contents("new-session"),
+            mtimeMs: nowMs,
+          });
+          const refreshed = yield* scanner
+            .recentThreads(workspace, [imported.source], true)
+            .pipe(Stream.runCollect);
+          expect(refreshed).toHaveLength(2);
+          expect(refreshed).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                _tag: "Importable",
+                thread: expect.objectContaining({
+                  providerSessionId: "original-session",
+                  title: "Desktop rename",
+                }),
+              }),
+              expect.objectContaining({
+                _tag: "Importable",
+                thread: expect.objectContaining({ providerSessionId: "new-session" }),
+              }),
+            ]),
+          );
+          yield* fileSystem.remove(path.join(path.dirname(filePath), "rollout-new.jsonl"));
+
+          yield* scanner.scan;
 
           // Keep the old inode allocated while replacing the path with an equal-size file.
           yield* fileSystem.open(filePath);
@@ -2611,6 +2642,39 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         ).toEqual(["recent-session"]);
       }),
     );
+  });
+});
+
+describe("desktop conversation titles", () => {
+  it("uses the last valid Codex index rename", () => {
+    expect(
+      Array.from(
+        AgentSessionScanner.parseCodexSessionTitles(
+          [
+            '{"id":"one","thread_name":"Old"}',
+            "broken",
+            '{"id":"one","thread_name":"EP Plan Design"}',
+            '{"id":"one","thread_name":" "}',
+          ].join("\n"),
+        ),
+      ),
+    ).toEqual([["one", "EP Plan Design"]]);
+  });
+  it("prefers Claude custom titles over generated names and command wrappers", () => {
+    const thread = AgentSessionScanner.parseAgentSessionTranscript({
+      source: "claudeAgent",
+      providerInstanceId: ProviderInstanceId.make("claudeAgent"),
+      fallbackSessionId: "test",
+      lastActiveAtMs: 0,
+      contents: [
+        { type: "user", message: { content: "<command-message>orient</command-message>" } },
+        { type: "custom-title", customTitle: "EP Plan Design" },
+        { type: "ai-title", aiTitle: "Orient" },
+      ]
+        .map((record) => JSON.stringify(record))
+        .join("\n"),
+    });
+    expect(thread?.title).toBe("EP Plan Design");
   });
 });
 
