@@ -97,7 +97,7 @@ function ChatPane({
           }}
         >
           <SelectTrigger aria-label={`Choose ${side} conversation`} size="sm">
-            <SelectValue />
+            <SelectValue>{thread?.title ?? "Choose a conversation"}</SelectValue>
           </SelectTrigger>
           <SelectPopup>
             {choices
