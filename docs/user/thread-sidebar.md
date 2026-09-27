@@ -31,6 +31,10 @@ Open a thread, then use **Open beside** above the conversation to choose another
 thread from the same project. You can also right-click a different thread in that
 project's sidebar and choose **Open beside current thread**.
 
+Each pane shows its provider and full thread title. Use the selector at the top of
+either pane to replace that conversation with another thread from the same project.
+A thread already open in the other pane is excluded to keep each editor independent.
+
 Each pane has its own conversation, input, and controls. Click a pane to select it;
 keyboard shortcuts and sidebar navigation apply to that pane. Drag the divider to
 resize it, or focus the divider and use Left/Right arrows. Double-click it to

@@ -45,6 +45,19 @@ describe("paired project conversations", () => {
     expect(useProjectChatSplitStore.getState().byProject["host-1:project"]).toBeUndefined();
   });
 
+  it("replaces either pane explicitly and refuses to duplicate its peer", () => {
+    const store = useProjectChatSplitStore.getState();
+    store.open("host:project", a, b);
+    store.replace("host:project", "left", c);
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]).toMatchObject({
+      left: c,
+      right: b,
+      active: "left",
+    });
+    store.replace("host:project", "right", c);
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]?.right).toBe(b);
+  });
+
   it("refuses to mount two editors for the same thread", () => {
     useProjectChatSplitStore.getState().open("host:project", a, a);
     expect(useProjectChatSplitStore.getState().byProject).toEqual({});

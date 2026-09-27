@@ -1,3 +1,13 @@
+# Harness
+
+A personal T3 Code fork for working with two conversations from the same project side by side.
+
+The macOS app is named **Harness**, uses its own `~/.harness` runtime data and Electron profile, and registers `harness://` links. Automatic updates are disabled by default while this fork is under development. The original T3 installation can remain installed. Provider CLI logins are reused; conversations are imported explicitly.
+
+The code below retains upstream T3 documentation and license notices. Upstream: https://github.com/pingdotgg/t3code.
+
+---
+
 # T3 Code
 
 T3 Code is an "agent harness control surface". It enables control of the agents on your machine with a best-in-class mobile app ([iOS](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824), [Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)), [web app](https://app.t3.codes) and [Electron-based desktop app](https://t3.codes).

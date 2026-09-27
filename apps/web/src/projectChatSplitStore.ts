@@ -28,6 +28,7 @@ export function clampChatSplitRatio(ratio: number): number {
 interface ProjectChatSplitStore {
   byProject: Record<string, ProjectChatSplit>;
   open: (projectKey: string, left: ThreadId, right: ThreadId) => void;
+  replace: (projectKey: string, side: ChatPaneSide, threadId: ThreadId) => void;
   follow: (projectKey: string, threadId: ThreadId) => void;
   focus: (projectKey: string, side: ChatPaneSide) => void;
   resize: (projectKey: string, ratio: number) => void;
@@ -52,6 +53,17 @@ export const useProjectChatSplitStore = create<ProjectChatSplitStore>()(
           },
         }));
       },
+      replace: (projectKey, side, threadId) =>
+        set((state) => {
+          const split = state.byProject[projectKey];
+          if (!split || split[side === "left" ? "right" : "left"] === threadId) return state;
+          return {
+            byProject: {
+              ...state.byProject,
+              [projectKey]: { ...split, [side]: threadId, active: side },
+            },
+          };
+        }),
       follow: (projectKey, threadId) =>
         set((state) => {
           const split = state.byProject[projectKey];
