@@ -25,6 +25,22 @@ in a new thread's model picker to add or remove them. A regular click returns to
 single model. Choose a base branch and send. Each selection starts a separate thread
 and worktree while you stay in the new thread composer. This requires a Git project.
 
+## Open two conversations side by side
+
+Open a thread, then use **Open beside** above the conversation to choose another
+thread from the same project. You can also right-click a different thread in that
+project's sidebar and choose **Open beside current thread**.
+
+Each pane has its own conversation, input, and controls. Click a pane to select it;
+keyboard shortcuts and sidebar navigation apply to that pane. Drag the divider to
+resize it, or focus the divider and use Left/Right arrows. Double-click it to
+restore equal widths. **Close split** returns to the selected conversation without
+stopping either agent.
+
+The thread pair and divider are remembered per project on this device. On narrow
+windows, the Left/Right buttons switch between the paired conversations. Native
+mobile clients continue to use their existing single-conversation layout.
+
 ## Pin and reorder threads
 
 Pin a thread from its menu to keep it above your active work.

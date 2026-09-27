@@ -1,3 +1,4 @@
+import { useProjectChatSplitStore } from "../projectChatSplitStore";
 import { requestCustomSnooze } from "./CustomSnoozeDialog";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
 import { resolveThreadCurrentPullRequestLink } from "@t3tools/shared/threadPullRequests";
@@ -4081,9 +4082,19 @@ export default function Sidebar() {
                 projectRef.projectId === thread.projectId,
             ),
           ) ?? null;
+        const currentThreadKey = routeThreadKeyRef.current;
+        const currentThread = currentThreadKey
+          ? threadByKeyRef.current.get(currentThreadKey)
+          : undefined;
+        const canOpenBeside =
+          currentThread !== undefined &&
+          currentThread.id !== thread.id &&
+          currentThread.environmentId === thread.environmentId &&
+          currentThread.projectId === thread.projectId;
         const clicked = await settlePromise(() =>
           api.contextMenu.show(
             buildThreadActionMenuItems({
+              canOpenBeside,
               branch: thread.branch ?? null,
               projectFilter: threadProjectGroup
                 ? {
@@ -4121,6 +4132,14 @@ export default function Sidebar() {
           return;
         }
         switch (clicked.value) {
+          case "open-beside": {
+            if (!canOpenBeside || !currentThread) return;
+            useProjectChatSplitStore
+              .getState()
+              .open(`${thread.environmentId}:${thread.projectId}`, currentThread.id, thread.id);
+            await navigateToThread(threadRef);
+            return;
+          }
           case "filter-by-project":
             // This item is the only scope control here, so picking the
             // already-scoped project again is the way back to all projects.
@@ -4312,6 +4331,7 @@ export default function Sidebar() {
       deleteThread,
       handleMultiSelectContextMenu,
       markThreadUnread,
+      navigateToThread,
       openProjectSettings,
       projectScopeKey,
       projectByKey,

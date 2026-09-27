@@ -1,3 +1,4 @@
+import { useChatPaneActive } from "./ChatPaneContext";
 import { DESKTOP_PASTE_AS_TEXT_EVENT } from "../../lib/desktopPasteAsText";
 import { isLocalEnvironmentDisabled } from "../../localEnvironment";
 import { usePrimaryEnvironmentId } from "../../state/environments";
@@ -1483,6 +1484,7 @@ export interface ChatComposerProps {
 // --------------------------------------------------------------------------
 
 export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
+  const isChatPaneActive = useChatPaneActive();
   const {
     composerDraftTarget,
     environmentId,
@@ -2204,6 +2206,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       pasteAsTextShortcutUntilRef.current = 0;
     };
     const onDesktopPasteAsText = () => {
+      if (!isChatPaneActive()) return;
       const activeElement = document.activeElement;
       const blocksPasteToFocus =
         activeElement instanceof Element &&
@@ -2225,7 +2228,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("blur", onBlur);
     };
-  }, []);
+  }, [isChatPaneActive]);
 
   // ------------------------------------------------------------------
   // Derived: composer send state
@@ -5209,6 +5212,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
 
   useEffect(() => {
     const handler = (event: globalThis.KeyboardEvent) => {
+      if (!isChatPaneActive()) return;
       const command = resolveShortcutCommand(event, keybindings, {
         context: {
           terminalFocus: getTerminalFocusOwner() !== null,
@@ -5236,6 +5240,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [
+    isChatPaneActive,
     activePendingProgress,
     isComposerApprovalState,
     isComposerModelPickerOpen,
@@ -5842,9 +5847,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     composerRef,
     () => ({
       focusAtEnd: () => {
+        if (!isChatPaneActive()) return;
         composerEditorRef.current?.focusAtEnd();
       },
       focusAt: (cursor: number) => {
+        if (!isChatPaneActive()) return;
         composerEditorRef.current?.focusAt(cursor);
       },
       restoreAfterTimelineReachedEnd,
@@ -6050,6 +6057,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       },
     }),
     [
+      isChatPaneActive,
       activeThread,
       addComposerAttachments,
       foldPastedText,

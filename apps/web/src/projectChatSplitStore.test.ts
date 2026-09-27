@@ -1,0 +1,58 @@
+import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { ThreadId } from "@t3tools/contracts";
+import {
+  clampChatSplitRatio,
+  followThreadInSplit,
+  useProjectChatSplitStore,
+} from "./projectChatSplitStore";
+
+const a = ThreadId.make("thread-a");
+const b = ThreadId.make("thread-b");
+const c = ThreadId.make("thread-c");
+
+describe("paired project conversations", () => {
+  beforeEach(() => useProjectChatSplitStore.setState({ byProject: {} }));
+
+  it("keeps the other conversation when sidebar navigation replaces the selected pane", () => {
+    const split = { left: a, right: b, active: "right" as const, ratio: 0.4 };
+    expect(followThreadInSplit(split, c)).toEqual({ ...split, right: c });
+    expect(followThreadInSplit({ ...split, active: "left" }, c)).toEqual({
+      ...split,
+      active: "left",
+      left: c,
+    });
+  });
+
+  it("focuses an already visible conversation without duplicating it or swapping panes", () => {
+    const split = { left: a, right: b, active: "right" as const, ratio: 0.5 };
+    expect(followThreadInSplit(split, a)).toEqual({ ...split, active: "left" });
+    expect(followThreadInSplit(split, b)).toBe(split);
+  });
+
+  it("remembers separate pairs and divider positions per project and host", () => {
+    const store = useProjectChatSplitStore.getState();
+    store.open("host-1:project", a, b);
+    store.resize("host-1:project", 0.6);
+    store.open("host-2:project", b, c);
+    store.focus("host-1:project", "left");
+    store.follow("host-1:project", c);
+    expect(useProjectChatSplitStore.getState().byProject).toEqual({
+      "host-1:project": { left: c, right: b, active: "left", ratio: 0.6 },
+      "host-2:project": { left: b, right: c, active: "right", ratio: 0.5 },
+    });
+    store.close("host-1:project");
+    expect(useProjectChatSplitStore.getState().byProject["host-2:project"]).toBeDefined();
+    expect(useProjectChatSplitStore.getState().byProject["host-1:project"]).toBeUndefined();
+  });
+
+  it("refuses to mount two editors for the same thread", () => {
+    useProjectChatSplitStore.getState().open("host:project", a, a);
+    expect(useProjectChatSplitStore.getState().byProject).toEqual({});
+  });
+
+  it("keeps either pane usable at extreme or invalid divider positions", () => {
+    expect(clampChatSplitRatio(-5)).toBe(0.3);
+    expect(clampChatSplitRatio(5)).toBe(0.7);
+    expect(clampChatSplitRatio(Number.NaN)).toBe(0.5);
+  });
+});

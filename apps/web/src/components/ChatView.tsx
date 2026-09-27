@@ -1,3 +1,4 @@
+import { useChatPaneActive, useIsSplitChatPane } from "./chat/ChatPaneContext";
 import { useLoadBalancedEnvironment } from "../hooks/useLoadBalancedEnvironment";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 import type { UsageLimitSourceSnapshots } from "@t3tools/contracts";
@@ -1474,6 +1475,8 @@ function releaseChatTimelineAnchor<T extends { readonly messageId: MessageId | n
 }
 
 export default function ChatView(props: ChatViewProps) {
+  const isChatPaneActive = useChatPaneActive();
+  const isSplitChatPane = useIsSplitChatPane();
   const {
     environmentId,
     threadId,
@@ -3980,8 +3983,8 @@ export default function ChatView(props: ChatViewProps) {
     buildRunningThreadTurnInterruptInput(activeThread, phase) !== null;
 
   const focusComposer = useCallback(() => {
-    composerRef.current?.focusAtEnd();
-  }, [composerRef]);
+    if (isChatPaneActive()) composerRef.current?.focusAtEnd();
+  }, [composerRef, isChatPaneActive]);
   useEffect(() => subscribeSnapShotComposerFocus(focusComposer), [focusComposer]);
   const scheduleComposerFocus = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -5209,9 +5212,10 @@ export default function ChatView(props: ChatViewProps) {
   useEffect(
     () =>
       subscribePreviewAction((action) => {
+        if (!isChatPaneActive()) return;
         if (action === "toggle-panel") togglePreviewPanel();
       }),
-    [togglePreviewPanel],
+    [togglePreviewPanel, isChatPaneActive],
   );
   const persistThreadSettingsForNextTurn = useCallback(
     async (input: {
@@ -5509,6 +5513,7 @@ export default function ChatView(props: ChatViewProps) {
         // the end on the next stream chunk. Clicking message text can leave
         // DOM focus on body, so these keys must also be heard at document.
         const handleKeyDown = (event: KeyboardEvent) => {
+          if (!isChatPaneActive()) return;
           if (
             !(event.target instanceof Node) ||
             (!scrollNode.contains(event.target) &&
@@ -5585,7 +5590,12 @@ export default function ChatView(props: ChatViewProps) {
       }
       removeListeners?.();
     };
-  }, [activeThread?.id, isTimelineAtLogicalEnd, timelineRealContentOverflowsViewport]);
+  }, [
+    activeThread?.id,
+    isTimelineAtLogicalEnd,
+    timelineRealContentOverflowsViewport,
+    isChatPaneActive,
+  ]);
 
   const onTimelineAnchorReady = useCallback((messageId: MessageId, anchorIndex: number) => {
     // Anchored-end space can be remeasured when the turn completes. Once the
@@ -6686,6 +6696,7 @@ export default function ChatView(props: ChatViewProps) {
 
   useEffect(() => {
     const handler = (event: globalThis.KeyboardEvent) => {
+      if (!isChatPaneActive()) return;
       if (preventRepeatedTerminalCloseShortcut(event, keybindings)) {
         event.stopPropagation();
         return;
@@ -6931,6 +6942,7 @@ export default function ChatView(props: ChatViewProps) {
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [
+    isChatPaneActive,
     activeProject,
     activeRightPanelSurface,
     activeProjectScripts,
@@ -6974,6 +6986,7 @@ export default function ChatView(props: ChatViewProps) {
   // Route it to the composer like a typed key, which also expands it.
   useEffect(() => {
     const keyHandler = (event: KeyboardEvent) => {
+      if (!isChatPaneActive()) return;
       if (
         shouldRedirectInputToComposer(event) &&
         isPasteAsTextShortcut(event, isMacPlatform(navigator.platform))
@@ -6982,6 +6995,7 @@ export default function ChatView(props: ChatViewProps) {
       }
     };
     const handler = (event: ClipboardEvent) => {
+      if (!isChatPaneActive()) return;
       if (!activeThreadId || isCommandPaletteOpen()) return;
       if (getTerminalFocusOwner() !== null) return;
       if (composerRef.current?.isModelPickerOpen()) return;
@@ -7005,7 +7019,7 @@ export default function ChatView(props: ChatViewProps) {
       window.removeEventListener("keydown", keyHandler, true);
       window.removeEventListener("paste", handler, true);
     };
-  }, [activeThreadId, composerRef]);
+  }, [activeThreadId, composerRef, isChatPaneActive]);
 
   const [pendingRevert, setPendingRevert] = useState<{
     turnCount: number;
@@ -9504,7 +9518,10 @@ export default function ChatView(props: ChatViewProps) {
       className={cn(
         // Keep one viewport anchor inside the header's no-drag region. The
         // header can shrink behind the right panel without moving the controls.
-        "pointer-events-none fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)] z-50 mr-px flex h-[var(--workspace-topbar-height)] items-center gap-1 [-webkit-app-region:no-drag]",
+        "pointer-events-none z-50 mr-px flex h-[var(--workspace-topbar-height)] items-center gap-1 [-webkit-app-region:no-drag]",
+        isSplitChatPane
+          ? "absolute top-0 right-2"
+          : "fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)]",
       )}
       data-workspace-titlebar-controls
     >
@@ -9738,7 +9755,7 @@ export default function ChatView(props: ChatViewProps) {
           reserveNativeControls={reserveTitleBarControlInset && !inlineRightPanelOwnsTitleBar}
           className="relative bg-background"
         >
-          {isElectron && rightPanelControlsAtRoot ? (
+          {isElectron && rightPanelControlsAtRoot && !isSplitChatPane ? (
             <span
               aria-hidden
               className="pointer-events-none fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)] h-[var(--workspace-topbar-height)] w-28 [-webkit-app-region:no-drag]"
