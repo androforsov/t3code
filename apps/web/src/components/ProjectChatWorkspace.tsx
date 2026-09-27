@@ -1,8 +1,10 @@
+import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
+import { createPaneComposerHandle } from "./chat/paneComposerHandle";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { Columns2Icon, XIcon } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useThreadShell, useThreadShells } from "../state/entities";
 import { buildThreadRouteParams, type ThreadRouteTarget } from "../threadRoutes";
@@ -37,20 +39,31 @@ function ChatPane({
     () => useProjectChatSplitStore.getState().byProject[projectKey]?.active === side,
     [projectKey, side],
   );
+  const parentComposer = useComposerHandleContext();
+  const composer = useMemo(
+    () => createPaneComposerHandle(parentComposer, isActive),
+    [parentComposer, isActive],
+  );
+  const activate = () => {
+    onActivate();
+    composer.activate();
+  };
   return (
     <section
       aria-label={`${side === "left" ? "Left" : "Right"} conversation`}
       data-chat-pane={side}
       data-active={active}
-      onPointerDownCapture={onActivate}
-      onFocusCapture={onActivate}
+      onPointerDownCapture={activate}
+      onFocusCapture={activate}
       className={`h-full min-h-0 min-w-0 flex-col overflow-hidden border-t-2 ${active ? "flex border-ring" : "hidden border-transparent lg:flex"}`}
     >
       <ChatPaneContext value={isActive}>
-        <ThreadRouteView
-          embedded
-          target={{ kind: "server", threadRef: scopeThreadRef(environmentId, threadId) }}
-        />
+        <ComposerHandleContext value={composer.ref}>
+          <ThreadRouteView
+            embedded
+            target={{ kind: "server", threadRef: scopeThreadRef(environmentId, threadId) }}
+          />
+        </ComposerHandleContext>
       </ChatPaneContext>
     </section>
   );

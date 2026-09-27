@@ -1,3 +1,4 @@
+import { useProjectChatSplitStore } from "../projectChatSplitStore";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
 import { resolveThreadCurrentPullRequestLink } from "@t3tools/shared/threadPullRequests";
 import { Spinner } from "~/components/ui/spinner";
@@ -2246,8 +2247,17 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
       );
       const threadWorkspacePath =
         thread.worktreePath ?? threadProject?.workspaceRoot ?? project.workspaceRoot ?? null;
+      const currentThread = activeRouteThreadKey
+        ? sidebarThreadByKeyRef.current.get(activeRouteThreadKey)
+        : undefined;
+      const canOpenBeside =
+        currentThread !== undefined &&
+        currentThread.id !== thread.id &&
+        currentThread.environmentId === thread.environmentId &&
+        currentThread.projectId === thread.projectId;
       const clicked = await api.contextMenu.show(
         [
+          ...(canOpenBeside ? [{ id: "open-beside", label: "Open beside current thread" }] : []),
           ...(thread.branch
             ? [{ id: "new-thread-on-branch", label: `New thread on ${thread.branch}` }]
             : []),
@@ -2260,6 +2270,15 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
         ],
         position,
       );
+
+      if (clicked === "open-beside") {
+        if (!canOpenBeside || !currentThread) return;
+        useProjectChatSplitStore
+          .getState()
+          .open(`${thread.environmentId}:${thread.projectId}`, currentThread.id, thread.id);
+        await navigateToThread(threadRef);
+        return;
+      }
 
       if (clicked === "project-settings") {
         if (isMobile) setOpenMobile(false);
@@ -2347,6 +2366,8 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
       }
     },
     [
+      activeRouteThreadKey,
+      navigateToThread,
       appSettingsConfirmThreadDelete,
       copyPathToClipboard,
       copyThreadIdToClipboard,
