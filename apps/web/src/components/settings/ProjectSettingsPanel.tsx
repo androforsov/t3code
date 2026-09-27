@@ -1,3 +1,4 @@
+import { useClientSettings, useUpdateClientSettings } from "../../hooks/useSettings";
 import {
   isAtomCommandInterrupted,
   mapAtomCommandResult,
@@ -177,6 +178,19 @@ function ProjectDetail({
       (member) => environmentById.get(member.environmentId)?.serverConfig != null,
     ) ?? group.memberProjects[0]!;
   const threads = useThreadShells();
+  const hiddenChatKeys = useClientSettings((settings) => settings.hiddenProjectChatKeys);
+  const updateClientSettings = useUpdateClientSettings();
+  const projectChatKeys = new Set(
+    threads
+      .filter((thread) =>
+        group.memberProjects.some(
+          (member) =>
+            member.environmentId === thread.environmentId && member.id === thread.projectId,
+        ),
+      )
+      .map((thread) => `${thread.environmentId}:${thread.id}`),
+  );
+  const hiddenProjectCount = hiddenChatKeys.filter((key) => projectChatKeys.has(key)).length;
   const updateProject = useAtomCommand(projectEnvironment.update, { reportFailure: false });
   const deleteProject = useAtomCommand(projectEnvironment.delete, { reportFailure: false });
   const projectNameEditedRef = useRef(false);
@@ -495,6 +509,29 @@ function ProjectDetail({
         <ProjectDefaultsSettings category="project" />
         <ProjectActionsSettings />
         {hasMultipleCheckouts ? checkoutChoices : null}
+        {hiddenProjectCount > 0 ? (
+          <SettingsSection title="Chat visibility">
+            <SettingsRow
+              title={`${hiddenProjectCount} hidden chats`}
+              description="Hidden only from this client's project list and conversation selectors. Their history and archive status are unchanged."
+              control={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    updateClientSettings({
+                      hiddenProjectChatKeys: hiddenChatKeys.filter(
+                        (key) => !projectChatKeys.has(key),
+                      ),
+                    })
+                  }
+                >
+                  Show hidden chats
+                </Button>
+              }
+            />
+          </SettingsSection>
+        ) : null}
         <SettingsSection title="Desktop chats">
           {group.memberProjects.map((member) => (
             <SettingsRow

@@ -183,3 +183,6 @@ Imports show a snapshot of conversation text. This action does not continuously
 mirror desktop activity, replace existing imported history, or resume an agent.
 Continue a session in one app at a time. Sessions stored only in the cloud are
 not included in local discovery.
+
+Chats hidden from a project list keep their history and archive status. To restore
+them on this client, open **Project settings → Chat visibility → Show hidden chats**.

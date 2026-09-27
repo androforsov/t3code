@@ -1,3 +1,4 @@
+import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 import { ProviderInstanceIcon } from "./chat/ProviderInstanceIcon";
 import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
@@ -128,7 +129,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
   const navigate = useNavigate();
   const ref = target.kind === "server" ? target.threadRef : null;
   const current = useThreadShell(ref);
-  const threads = useThreadShells();
+  const threads = useVisibleProjectChats(useThreadShells());
   const projectKey = current ? `${current.environmentId}:${current.projectId}` : null;
   const stored = useProjectChatSplitStore((state) =>
     projectKey ? state.byProject[projectKey] : undefined,
