@@ -58,6 +58,24 @@ describe("paired project conversations", () => {
     expect(useProjectChatSplitStore.getState().byProject["host:project"]?.right).toBe(b);
   });
 
+  it("swaps positions while focus and width follow the conversation, and can swap back", () => {
+    const store = useProjectChatSplitStore.getState();
+    store.open("host:project", a, b);
+    store.focus("host:project", "left");
+    store.resize("host:project", 0.4);
+    store.swap("host:project");
+    const swapped = useProjectChatSplitStore.getState().byProject["host:project"]!;
+    expect(swapped).toEqual({ left: b, right: a, active: "right", ratio: 0.6 });
+    expect(followThreadInSplit(swapped, a)).toBe(swapped);
+    store.swap("host:project");
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]).toEqual({
+      left: a,
+      right: b,
+      active: "left",
+      ratio: 0.4,
+    });
+  });
+
   it("refuses to mount two editors for the same thread", () => {
     useProjectChatSplitStore.getState().open("host:project", a, a);
     expect(useProjectChatSplitStore.getState().byProject).toEqual({});

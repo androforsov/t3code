@@ -9519,7 +9519,7 @@ export default function ChatView(props: ChatViewProps) {
         // Keep one viewport anchor inside the header's no-drag region. The
         // header can shrink behind the right panel without moving the controls.
         "pointer-events-none z-50 mr-px flex h-[var(--workspace-topbar-height)] items-center gap-1 [-webkit-app-region:no-drag]",
-        isSplitChatPane
+        isSplitChatPane || !reserveTitleBarControlInset
           ? "absolute top-0 right-2"
           : "fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)]",
       )}
@@ -9753,9 +9753,12 @@ export default function ChatView(props: ChatViewProps) {
           data-chat-header
           electron={isElectron}
           reserveNativeControls={reserveTitleBarControlInset && !inlineRightPanelOwnsTitleBar}
-          className="relative bg-background"
+          className={cn("relative bg-background", !reserveTitleBarControlInset && "pr-24")}
         >
-          {isElectron && rightPanelControlsAtRoot && !isSplitChatPane ? (
+          {isElectron &&
+          rightPanelControlsAtRoot &&
+          !isSplitChatPane &&
+          reserveTitleBarControlInset ? (
             <span
               aria-hidden
               className="pointer-events-none fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)] h-[var(--workspace-topbar-height)] w-28 [-webkit-app-region:no-drag]"

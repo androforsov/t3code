@@ -6,7 +6,7 @@ import { createPaneComposerHandle } from "./chat/paneComposerHandle";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
-import { Columns2Icon, XIcon } from "lucide-react";
+import { ArrowLeftRightIcon, Columns2Icon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useThreadShell, useThreadShells, useServerConfigs } from "../state/entities";
@@ -244,6 +244,19 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
               </Button>
             </div>
           ) : null}
+          {paired && projectKey ? (
+            <div className="lg:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Swap conversation sides"
+                onClick={() => useProjectChatSplitStore.getState().swap(projectKey)}
+              >
+                <ArrowLeftRightIcon />
+                Swap
+              </Button>
+            </div>
+          ) : null}
           {paired ? (
             <Button variant="ghost" size="sm" onClick={close}>
               <XIcon /> Close split
@@ -263,6 +276,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
           }
         >
           <ChatPane
+            key={paired.left}
             projectKey={projectKey}
             side="left"
             environmentId={ref.environmentId}
@@ -273,48 +287,61 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             choices={projectThreads}
             peerThreadId={paired.right}
           />
-          <div
-            role="separator"
-            aria-label="Resize conversations"
-            aria-orientation="vertical"
-            aria-valuemin={30}
-            aria-valuemax={70}
-            aria-valuenow={Math.round(paired.ratio * 100)}
-            tabIndex={0}
-            className="hidden cursor-col-resize touch-none lg:block bg-border hover:bg-ring focus-visible:bg-ring focus-visible:outline-none"
-            onDoubleClick={() => useProjectChatSplitStore.getState().resize(projectKey, 0.5)}
-            onKeyDown={(event) => {
-              const delta =
-                event.key === "ArrowLeft" ? -0.05 : event.key === "ArrowRight" ? 0.05 : 0;
-              if (delta !== 0 || event.key === "Home") {
+          <div key="divider" className="relative hidden lg:block">
+            <div
+              role="separator"
+              aria-label="Resize conversations"
+              aria-orientation="vertical"
+              aria-valuemin={30}
+              aria-valuemax={70}
+              aria-valuenow={Math.round(paired.ratio * 100)}
+              tabIndex={0}
+              className="h-full cursor-col-resize touch-none bg-border hover:bg-ring focus-visible:bg-ring focus-visible:outline-none"
+              onDoubleClick={() => useProjectChatSplitStore.getState().resize(projectKey, 0.5)}
+              onKeyDown={(event) => {
+                const delta =
+                  event.key === "ArrowLeft" ? -0.05 : event.key === "ArrowRight" ? 0.05 : 0;
+                if (delta !== 0 || event.key === "Home") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  useProjectChatSplitStore
+                    .getState()
+                    .resize(projectKey, event.key === "Home" ? 0.5 : paired.ratio + delta);
+                }
+              }}
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
                 event.preventDefault();
-                event.stopPropagation();
-                useProjectChatSplitStore
-                  .getState()
-                  .resize(projectKey, event.key === "Home" ? 0.5 : paired.ratio + delta);
-              }
-            }}
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              event.preventDefault();
-            }}
-            onPointerMove={(event) => {
-              if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-              const bounds = container.current?.getBoundingClientRect();
-              if (bounds && bounds.width > 0)
-                useProjectChatSplitStore
-                  .getState()
-                  .resize(
-                    projectKey,
-                    clampChatSplitRatio((event.clientX - bounds.left) / bounds.width),
-                  );
-            }}
-            onPointerUp={(event) => {
-              if (event.currentTarget.hasPointerCapture(event.pointerId))
-                event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-          />
+              }}
+              onPointerMove={(event) => {
+                if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                const bounds = container.current?.getBoundingClientRect();
+                if (bounds && bounds.width > 0)
+                  useProjectChatSplitStore
+                    .getState()
+                    .resize(
+                      projectKey,
+                      clampChatSplitRatio((event.clientX - bounds.left) / bounds.width),
+                    );
+              }}
+              onPointerUp={(event) => {
+                if (event.currentTarget.hasPointerCapture(event.pointerId))
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+              }}
+            />
+            <div className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label="Swap conversation sides"
+                onClick={() => useProjectChatSplitStore.getState().swap(projectKey)}
+              >
+                <ArrowLeftRightIcon />
+              </Button>
+            </div>
+          </div>
           <ChatPane
+            key={paired.right}
             projectKey={projectKey}
             side="right"
             environmentId={ref.environmentId}

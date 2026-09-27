@@ -32,6 +32,7 @@ interface ProjectChatSplitStore {
   follow: (projectKey: string, threadId: ThreadId) => void;
   focus: (projectKey: string, side: ChatPaneSide) => void;
   resize: (projectKey: string, ratio: number) => void;
+  swap: (projectKey: string) => void;
   close: (projectKey: string) => void;
 }
 
@@ -91,6 +92,22 @@ export const useProjectChatSplitStore = create<ProjectChatSplitStore>()(
                   [projectKey]: { ...split, ratio: clampChatSplitRatio(ratio) },
                 },
               };
+        }),
+      swap: (projectKey) =>
+        set((state) => {
+          const split = state.byProject[projectKey];
+          if (!split) return state;
+          return {
+            byProject: {
+              ...state.byProject,
+              [projectKey]: {
+                left: split.right,
+                right: split.left,
+                active: split.active === "left" ? "right" : "left",
+                ratio: clampChatSplitRatio(1 - split.ratio),
+              },
+            },
+          };
         }),
       close: (projectKey) =>
         set((state) => {
