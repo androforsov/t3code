@@ -1,3 +1,4 @@
+import { ConversationDivider } from "./ConversationDivider";
 import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 import { ProviderInstanceIcon } from "./chat/ProviderInstanceIcon";
@@ -12,7 +13,6 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useThreadShell, useThreadShells, useServerConfigs } from "../state/entities";
 import { buildThreadRouteParams, type ThreadRouteTarget } from "../threadRoutes";
 import {
-  clampChatSplitRatio,
   followThreadInSplit,
   useProjectChatSplitStore,
   type ChatPaneSide,
@@ -70,47 +70,41 @@ function ChatPane({
       data-active={active}
       onPointerDownCapture={activate}
       onFocusCapture={activate}
-      className={`h-full min-h-0 min-w-0 flex-col overflow-hidden border-t-2 ${active ? "flex border-ring" : "hidden border-transparent lg:flex"}`}
+      className={`h-full min-h-0 min-w-0 flex-col overflow-hidden ${active ? "flex" : "hidden lg:flex"}`}
     >
-      <div className="shrink-0 space-y-2 border-b border-border bg-background px-4 py-3 [-webkit-app-region:no-drag]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-            {provider ? (
-              <ProviderInstanceIcon
-                driverKind={provider.driver}
-                displayName={providerLabel}
-                iconClassName="size-4"
-              />
-            ) : null}
-            <span>{providerLabel}</span>
-            <span className="text-xs font-normal text-muted-foreground">
-              {side === "left" ? "Left" : "Right"}
-            </span>
-          </div>
-          {thread?.session?.status === "running" ? (
-            <span className="text-xs text-muted-foreground">Working</span>
-          ) : null}
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-background px-3 [-webkit-app-region:no-drag]">
+        {provider ? (
+          <ProviderInstanceIcon
+            driverKind={provider.driver}
+            displayName={providerLabel}
+            iconClassName="size-4"
+          />
+        ) : null}
+        <span className="text-xs text-muted-foreground">{providerLabel}</span>
+        <div className="min-w-0 flex-1">
+          <Select
+            value={threadId}
+            onValueChange={(value) => {
+              if (value) onReplace(value as ThreadId);
+            }}
+          >
+            <SelectTrigger aria-label={`Choose ${side} conversation`} size="sm">
+              <SelectValue>{thread?.title ?? "Choose a conversation"}</SelectValue>
+            </SelectTrigger>
+            <SelectPopup>
+              {choices
+                .filter((choice) => choice.id !== peerThreadId)
+                .map((choice) => (
+                  <SelectItem key={choice.id} value={choice.id}>
+                    {choice.title}
+                  </SelectItem>
+                ))}
+            </SelectPopup>
+          </Select>
         </div>
-        <Select
-          value={threadId}
-          onValueChange={(value) => {
-            if (value) onReplace(value as ThreadId);
-          }}
-        >
-          <SelectTrigger aria-label={`Choose ${side} conversation`} size="sm">
-            <SelectValue>{thread?.title ?? "Choose a conversation"}</SelectValue>
-          </SelectTrigger>
-          <SelectPopup>
-            {choices
-              .filter((choice) => choice.id !== peerThreadId)
-              .map((choice) => (
-                <SelectItem key={choice.id} value={choice.id}>
-                  {choice.title}
-                </SelectItem>
-              ))}
-          </SelectPopup>
-        </Select>
-        <p className="line-clamp-2 text-sm font-medium leading-snug">{thread?.title}</p>
+        {thread?.session?.status === "running" ? (
+          <span className="text-xs text-muted-foreground">Working</span>
+        ) : null}
       </div>
       <ChatPaneContext value={isActive}>
         <ComposerHandleContext value={composer.ref}>
@@ -287,59 +281,13 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             choices={projectThreads}
             peerThreadId={paired.right}
           />
-          <div key="divider" className="relative hidden lg:block">
-            <div
-              role="separator"
-              aria-label="Resize conversations"
-              aria-orientation="vertical"
-              aria-valuemin={30}
-              aria-valuemax={70}
-              aria-valuenow={Math.round(paired.ratio * 100)}
-              tabIndex={0}
-              className="h-full cursor-col-resize touch-none bg-border hover:bg-ring focus-visible:bg-ring focus-visible:outline-none"
-              onDoubleClick={() => useProjectChatSplitStore.getState().resize(projectKey, 0.5)}
-              onKeyDown={(event) => {
-                const delta =
-                  event.key === "ArrowLeft" ? -0.05 : event.key === "ArrowRight" ? 0.05 : 0;
-                if (delta !== 0 || event.key === "Home") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  useProjectChatSplitStore
-                    .getState()
-                    .resize(projectKey, event.key === "Home" ? 0.5 : paired.ratio + delta);
-                }
-              }}
-              onPointerDown={(event) => {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                event.preventDefault();
-              }}
-              onPointerMove={(event) => {
-                if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-                const bounds = container.current?.getBoundingClientRect();
-                if (bounds && bounds.width > 0)
-                  useProjectChatSplitStore
-                    .getState()
-                    .resize(
-                      projectKey,
-                      clampChatSplitRatio((event.clientX - bounds.left) / bounds.width),
-                    );
-              }}
-              onPointerUp={(event) => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId))
-                  event.currentTarget.releasePointerCapture(event.pointerId);
-              }}
-            />
-            <div className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Swap conversation sides"
-                onClick={() => useProjectChatSplitStore.getState().swap(projectKey)}
-              >
-                <ArrowLeftRightIcon />
-              </Button>
-            </div>
-          </div>
+          <ConversationDivider
+            key="divider"
+            ratio={paired.ratio}
+            width={() => container.current?.getBoundingClientRect().width ?? 0}
+            onResize={(ratio) => useProjectChatSplitStore.getState().resize(projectKey, ratio)}
+            onSwap={() => useProjectChatSplitStore.getState().swap(projectKey)}
+          />
           <ChatPane
             key={paired.right}
             projectKey={projectKey}

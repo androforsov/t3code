@@ -82,8 +82,8 @@ describe("paired project conversations", () => {
   });
 
   it("keeps either pane usable at extreme or invalid divider positions", () => {
-    expect(clampChatSplitRatio(-5)).toBe(0.3);
-    expect(clampChatSplitRatio(5)).toBe(0.7);
+    expect(clampChatSplitRatio(-5)).toBe(0.15);
+    expect(clampChatSplitRatio(5)).toBe(0.85);
     expect(clampChatSplitRatio(Number.NaN)).toBe(0.5);
   });
 });

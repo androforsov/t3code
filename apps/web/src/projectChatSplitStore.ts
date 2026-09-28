@@ -22,7 +22,7 @@ export function followThreadInSplit(split: ProjectChatSplit, threadId: ThreadId)
 }
 
 export function clampChatSplitRatio(ratio: number): number {
-  return Number.isFinite(ratio) ? Math.max(0.3, Math.min(0.7, ratio)) : 0.5;
+  return Number.isFinite(ratio) ? Math.max(0.15, Math.min(0.85, ratio)) : 0.5;
 }
 
 interface ProjectChatSplitStore {
