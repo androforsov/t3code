@@ -1396,7 +1396,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           // Keeps the tabs clear of the window controls when the layout toggles live elsewhere.
           <span aria-hidden className="hidden w-24 shrink-0 wco:block" />
         ) : null}
-        {ownsDesktopTitleBar ? (
+        {ownsDesktopTitleBar && !props.layoutControls ? (
           <span
             aria-hidden
             className="pointer-events-none fixed top-[var(--workspace-controls-top)] right-[var(--workspace-controls-right)] h-[var(--workspace-topbar-height)] w-28 [-webkit-app-region:no-drag]"

@@ -2081,8 +2081,12 @@ export default function ChatView(props: ChatViewProps) {
     panelAnimationDurationMs,
   );
   const rightPanelPresent = rightPanelPresence.present;
-  const rightPanelControlsInPanel = shouldUseRightPanelSheet && rightPanelPresent && rightPanelOpen;
-  const rightPanelControlsAtRoot = rightPanelPresent && !shouldUseRightPanelSheet;
+  const inlinePanelOwnsControls =
+    !shouldUseRightPanelSheet && (isSplitChatPane || !reserveTitleBarControlInset);
+  const rightPanelControlsInPanel =
+    rightPanelPresent && (inlinePanelOwnsControls || (shouldUseRightPanelSheet && rightPanelOpen));
+  const rightPanelControlsAtRoot =
+    rightPanelPresent && !shouldUseRightPanelSheet && !inlinePanelOwnsControls;
   const renderedRightPanelSurface = rightPanelPresence.value?.activeSurface ?? null;
   const renderedRightPanelSurfaces = rightPanelPresence.value?.surfaces ?? [];
   const previewMiniPlayerVisible = shouldRenderPreviewMiniPlayer(
@@ -10276,6 +10280,19 @@ export default function ChatView(props: ChatViewProps) {
       {rightPanelPresent && !shouldUseRightPanelSheet && activeThreadRef ? (
         <RightPanelTabs
           mode="inline"
+          // Electron drag regions can intercept a sibling overlay's clicks even
+          // above it in CSS. Keep pane-local buttons inside their owning tab bar.
+          layoutControls={
+            inlinePanelOwnsControls ? (
+              <div className="flex h-full shrink-0 items-center gap-1 [-webkit-app-region:no-drag]">
+                <RightPanelMaximizeControl
+                  maximized={rightPanelMaximized}
+                  onToggle={toggleRightPanelMaximized}
+                />
+                {panelToggleControls}
+              </div>
+            ) : undefined
+          }
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
           open={rightPanelOpen}
           maximized={rightPanelMaximized}
