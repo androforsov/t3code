@@ -21,6 +21,34 @@ export function followThreadInSplit(split: ProjectChatSplit, threadId: ThreadId)
     : { ...split, [active]: threadId, active };
 }
 
+/** Dropping an existing peer moves it, never mounts a duplicate editor. */
+export function placeThreadInSplit(
+  split: ProjectChatSplit | null,
+  current: ThreadId,
+  dropped: ThreadId,
+  side: ChatPaneSide,
+): ProjectChatSplit | null {
+  if (!split) {
+    if (current === dropped) return null;
+    return {
+      left: side === "left" ? dropped : current,
+      right: side === "right" ? dropped : current,
+      active: side,
+      ratio: 0.5,
+    };
+  }
+  const peer = side === "left" ? "right" : "left";
+  if (split[side] === dropped) return { ...split, active: side };
+  if (split[peer] === dropped)
+    return {
+      left: split.right,
+      right: split.left,
+      active: side,
+      ratio: clampChatSplitRatio(1 - split.ratio),
+    };
+  return { ...split, [side]: dropped, active: side };
+}
+
 export function clampChatSplitRatio(ratio: number): number {
   return Number.isFinite(ratio) ? Math.max(0.15, Math.min(0.85, ratio)) : 0.5;
 }
@@ -33,6 +61,7 @@ interface ProjectChatSplitStore {
   focus: (projectKey: string, side: ChatPaneSide) => void;
   resize: (projectKey: string, ratio: number) => void;
   swap: (projectKey: string) => void;
+  place: (projectKey: string, current: ThreadId, dropped: ThreadId, side: ChatPaneSide) => void;
   close: (projectKey: string) => void;
 }
 
@@ -108,6 +137,16 @@ export const useProjectChatSplitStore = create<ProjectChatSplitStore>()(
               },
             },
           };
+        }),
+      place: (projectKey, current, dropped, side) =>
+        set((state) => {
+          const next = placeThreadInSplit(
+            state.byProject[projectKey] ?? null,
+            current,
+            dropped,
+            side,
+          );
+          return next ? { byProject: { ...state.byProject, [projectKey]: next } } : state;
         }),
       close: (projectKey) =>
         set((state) => {

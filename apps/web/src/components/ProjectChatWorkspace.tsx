@@ -1,3 +1,10 @@
+import {
+  canPlaceProjectChat,
+  endProjectChatDrag,
+  projectChatDragKey,
+  PROJECT_CHAT_DRAG_TYPE,
+  useProjectChatDrag,
+} from "../projectChatDrag";
 import { ConversationDivider } from "./ConversationDivider";
 import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
@@ -7,8 +14,8 @@ import { createPaneComposerHandle } from "./chat/paneComposerHandle";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeftRightIcon, Columns2Icon, XIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { ArrowLeftRightIcon, XIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 
 import { useThreadShell, useThreadShells, useServerConfigs } from "../state/entities";
 import { buildThreadRouteParams, type ThreadRouteTarget } from "../threadRoutes";
@@ -33,6 +40,7 @@ function ChatPane({
   onReplace,
   choices,
   peerThreadId,
+  onClose,
 }: {
   projectKey: string;
   side: ChatPaneSide;
@@ -43,6 +51,7 @@ function ChatPane({
   onReplace: (id: ThreadId) => void;
   choices: ReadonlyArray<{ id: ThreadId; title: string }>;
   peerThreadId: ThreadId;
+  onClose: () => void;
 }) {
   const thread = useThreadShell(scopeThreadRef(environmentId, threadId));
   const configs = useServerConfigs();
@@ -102,6 +111,14 @@ function ChatPane({
             </SelectPopup>
           </Select>
         </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Close ${side} conversation pane`}
+          onClick={onClose}
+        >
+          <XIcon />
+        </Button>
         {thread?.session?.status === "running" ? (
           <span className="text-xs text-muted-foreground">Working</span>
         ) : null}
@@ -158,14 +175,6 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
       });
     }
   };
-  const openBeside = (threadId: ThreadId) => {
-    if (!projectKey || !current || !available.has(threadId) || threadId === current.id) return;
-    useProjectChatSplitStore.getState().open(projectKey, current.id, threadId);
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(scopeThreadRef(current.environmentId, threadId)),
-    });
-  };
   const replace = (side: ChatPaneSide, threadId: ThreadId) => {
     if (!projectKey || !current || !paired || !available.has(threadId)) return;
     if (paired[side === "left" ? "right" : "left"] === threadId) return;
@@ -180,46 +189,93 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
     if (projectKey) useProjectChatSplitStore.getState().close(projectKey);
   };
 
+  const draggedChat = useProjectChatDrag((state) => state.chat);
+  const [dropSide, setDropSide] = useState<ChatPaneSide | null>(null);
+  const eligibleChat = (chat: typeof draggedChat) =>
+    canPlaceProjectChat(chat, current) &&
+    threads.some(
+      (thread) =>
+        thread.id === chat?.id &&
+        thread.environmentId === chat.environmentId &&
+        thread.archivedAt === null,
+    );
+  const dropEligible = eligibleChat(draggedChat);
+  const isChatDrag = (event: DragEvent<HTMLElement>) =>
+    event.dataTransfer.types.includes(PROJECT_CHAT_DRAG_TYPE);
+  const sideAt = (event: DragEvent<HTMLElement>): ChatPaneSide => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return event.clientX < bounds.left + bounds.width * (paired?.ratio ?? 0.5) ? "left" : "right";
+  };
+  const dragOver = (event: DragEvent<HTMLElement>) => {
+    if (!isChatDrag(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const eligible = eligibleChat(useProjectChatDrag.getState().chat);
+    event.dataTransfer.dropEffect = eligible ? "move" : "none";
+    setDropSide(eligible ? sideAt(event) : null);
+  };
+  const dropChat = (event: DragEvent<HTMLElement>) => {
+    if (!isChatDrag(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const side = sideAt(event);
+    // Native drag events can finish before React commits the drag-start render.
+    const dropped = useProjectChatDrag.getState().chat;
+    if (
+      dropped &&
+      eligibleChat(dropped) &&
+      event.dataTransfer.getData(PROJECT_CHAT_DRAG_TYPE) === projectChatDragKey(dropped)
+    ) {
+      if (current && projectKey)
+        useProjectChatSplitStore.getState().place(projectKey, current.id, dropped.id, side);
+      void navigate({
+        to: "/$environmentId/$threadId",
+        params: buildThreadRouteParams(scopeThreadRef(dropped.environmentId, dropped.id)),
+      });
+    }
+    setDropSide(null);
+    endProjectChatDrag();
+  };
+  const closePane = (side: ChatPaneSide) => {
+    if (!paired || !ref) return;
+    const keep = paired[side === "left" ? "right" : "left"];
+    close();
+    void navigate({
+      to: "/$environmentId/$threadId",
+      params: buildThreadRouteParams(scopeThreadRef(ref.environmentId, keep)),
+    });
+  };
   return (
-    <SidebarInset className="h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh">
-      {current ? (
-        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-3 py-2 [-webkit-app-region:no-drag]">
-          <Columns2Icon className="size-4 text-muted-foreground" aria-hidden />
-          <label htmlFor="open-thread-beside" className="text-sm text-muted-foreground">
-            Open beside
-          </label>
-          <div className="min-w-0 flex-1">
-            <Select
-              value={null}
-              disabled={projectThreads.length < 2}
-              onValueChange={(value) => {
-                if (value) openBeside(value as ThreadId);
-              }}
+    <SidebarInset
+      className="relative h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh"
+      onDragOverCapture={dragOver}
+      onDropCapture={dropChat}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropSide(null);
+      }}
+    >
+      {draggedChat && dropEligible ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-60 grid"
+          style={{
+            gridTemplateColumns: `${paired?.ratio ?? 0.5}fr ${1 - (paired?.ratio ?? 0.5)}fr`,
+          }}
+        >
+          {(["left", "right"] as const).map((side) => (
+            <div
+              key={side}
+              className={`m-2 flex items-center justify-center rounded-xl border border-dashed border-foreground/25 transition-colors ${dropSide === side ? "bg-foreground/15" : "bg-background/35"}`}
             >
-              <SelectTrigger
-                id="open-thread-beside"
-                aria-label="Open another conversation beside this one"
-                size="sm"
-              >
-                <SelectValue
-                  placeholder={
-                    projectThreads.length < 2
-                      ? "Create another thread in this project first"
-                      : "Choose a thread in this project…"
-                  }
-                />
-              </SelectTrigger>
-              <SelectPopup>
-                {projectThreads
-                  .filter((thread) => thread.id !== current.id)
-                  .map((thread) => (
-                    <SelectItem key={thread.id} value={thread.id}>
-                      {thread.title}
-                    </SelectItem>
-                  ))}
-              </SelectPopup>
-            </Select>
-          </div>
+              <span className="rounded-lg border border-border bg-background px-4 py-2 text-sm">
+                {paired ? "Place chat on" : "Open chat on"} the {side}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {paired ? (
+        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-border bg-background px-3 py-2 lg:hidden [-webkit-app-region:no-drag]">
           {paired ? (
             <div className="flex gap-1 lg:hidden">
               <Button
@@ -278,6 +334,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             active={paired.active === "left"}
             onActivate={() => activate("left")}
             onReplace={(id) => replace("left", id)}
+            onClose={() => closePane("left")}
             choices={projectThreads}
             peerThreadId={paired.right}
           />
@@ -297,6 +354,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             active={paired.active === "right"}
             onActivate={() => activate("right")}
             onReplace={(id) => replace("right", id)}
+            onClose={() => closePane("right")}
             choices={projectThreads}
             peerThreadId={paired.left}
           />

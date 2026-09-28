@@ -3,6 +3,7 @@ import { ThreadId } from "@t3tools/contracts";
 import {
   clampChatSplitRatio,
   followThreadInSplit,
+  placeThreadInSplit,
   useProjectChatSplitStore,
 } from "./projectChatSplitStore";
 
@@ -85,5 +86,37 @@ describe("paired project conversations", () => {
     expect(clampChatSplitRatio(-5)).toBe(0.15);
     expect(clampChatSplitRatio(5)).toBe(0.85);
     expect(clampChatSplitRatio(Number.NaN)).toBe(0.5);
+  });
+});
+
+describe("placing a dragged conversation", () => {
+  it("opens either side of a single conversation", () => {
+    expect(placeThreadInSplit(null, a, b, "left")).toEqual({
+      left: b,
+      right: a,
+      active: "left",
+      ratio: 0.5,
+    });
+    expect(placeThreadInSplit(null, a, b, "right")).toEqual({
+      left: a,
+      right: b,
+      active: "right",
+      ratio: 0.5,
+    });
+    expect(placeThreadInSplit(null, a, a, "right")).toBeNull();
+  });
+  it("replaces only the target and preserves the divider", () => {
+    const split = { left: a, right: b, active: "right" as const, ratio: 0.65 };
+    expect(placeThreadInSplit(split, b, c, "left")).toEqual({ ...split, left: c, active: "left" });
+  });
+  it("moves the visible peer instead of duplicating it", () => {
+    const split = { left: a, right: b, active: "left" as const, ratio: 0.65 };
+    expect(placeThreadInSplit(split, a, b, "left")).toEqual({
+      left: b,
+      right: a,
+      active: "left",
+      ratio: 0.35,
+    });
+    expect(placeThreadInSplit(split, a, a, "left")).toEqual(split);
   });
 });

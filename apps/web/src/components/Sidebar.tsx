@@ -1,3 +1,4 @@
+import { makeProjectChatDragHandlers } from "../projectChatDrag";
 import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
 import { useProjectChatSplitStore } from "../projectChatSplitStore";
 import { requestCustomSnooze } from "./CustomSnoozeDialog";
@@ -1484,6 +1485,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
   ) : (
     <span
       aria-hidden
+      {...makeProjectChatDragHandlers(thread)}
+      onPointerDown={(event) => event.stopPropagation()}
       className={cn(
         "min-w-0 flex-1 text-sm transition-opacity motion-reduce:transition-none",
         shouldRecede ? "font-normal" : "font-medium",

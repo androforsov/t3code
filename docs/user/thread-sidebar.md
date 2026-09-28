@@ -27,8 +27,9 @@ and worktree while you stay in the new thread composer. This requires a Git proj
 
 ## Open two conversations side by side
 
-Open a thread, then use **Open beside** above the conversation to choose another
-thread from the same project. You can also right-click a different thread in that
+Open a thread, then drag another thread from the project sidebar onto the left or right
+side of the conversation. The highlighted drop zone shows where it will open.
+Both threads must belong to the same project. You can also right-click a different thread in that
 project's sidebar and choose **Open beside current thread**.
 
 Each pane shows its provider and full thread title. Use the selector at the top of
@@ -38,8 +39,8 @@ A thread already open in the other pane is excluded to keep each editor independ
 Each pane has its own conversation, input, and controls. Click a pane to select it;
 keyboard shortcuts and sidebar navigation apply to that pane. Drag the divider to
 resize it, or focus the divider and use Left/Right arrows. Double-click it to
-restore equal widths. **Close split** returns to the selected conversation without
-stopping either agent.
+restore equal widths. Use the **×** in either pane header to close that pane and keep
+the other conversation. Closing a pane does not stop its agent.
 
 The thread pair and divider are remembered per project on this device. On narrow
 windows, the Left/Right buttons switch between the paired conversations. Native
@@ -186,3 +187,8 @@ not included in local discovery.
 
 Chats hidden from a project list keep their history and archive status. To restore
 them on this client, open **Project settings → Chat visibility → Show hidden chats**.
+
+In the flat sidebar, drag the chat title into the workspace; dragging elsewhere
+on its row keeps the existing sidebar reordering behavior. Dropping onto an
+existing pane replaces only that pane. Dropping a visible peer moves it without
+creating a duplicate. File drops still attach files as before.

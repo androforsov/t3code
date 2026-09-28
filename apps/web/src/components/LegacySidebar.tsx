@@ -1,3 +1,4 @@
+import { makeProjectChatDragHandlers } from "../projectChatDrag";
 import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
 import { useProjectChatSplitStore } from "../projectChatSplitStore";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
@@ -720,6 +721,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         data-sidebar="menu-sub-button"
         data-size="sm"
         data-testid={`thread-row-${thread.id}`}
+        {...makeProjectChatDragHandlers(thread)}
+        draggable={renamingThreadKey !== threadKey}
         className={cn(
           "relative isolate flex h-8 w-full min-w-0 cursor-pointer select-none items-center gap-2 overflow-hidden rounded-md px-2 text-left text-xs outline-hidden focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring group-data-[collapsible=icon]:hidden [&>span:last-child]:truncate [&>svg:not([class*='size-'])]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-muted-foreground",
           isActive
