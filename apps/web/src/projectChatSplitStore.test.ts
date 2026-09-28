@@ -14,13 +14,18 @@ const c = ThreadId.make("thread-c");
 describe("paired project conversations", () => {
   beforeEach(() => useProjectChatSplitStore.setState({ byProject: {} }));
 
-  it("keeps the other conversation when sidebar navigation replaces the selected pane", () => {
+  it("opens unrelated sidebar chats alone without changing the linked pair", () => {
     const split = { left: a, right: b, active: "right" as const, ratio: 0.4 };
-    expect(followThreadInSplit(split, c)).toEqual({ ...split, right: c });
-    expect(followThreadInSplit({ ...split, active: "left" }, c)).toEqual({
+    expect(followThreadInSplit(split, c)).toBeNull();
+    const store = useProjectChatSplitStore.getState();
+    store.open("host:project", a, b);
+    store.resize("host:project", 0.4);
+    store.follow("host:project", c);
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]).toEqual(split);
+    store.follow("host:project", a);
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]).toEqual({
       ...split,
       active: "left",
-      left: c,
     });
   });
 
@@ -38,7 +43,7 @@ describe("paired project conversations", () => {
     store.focus("host-1:project", "left");
     store.follow("host-1:project", c);
     expect(useProjectChatSplitStore.getState().byProject).toEqual({
-      "host-1:project": { left: c, right: b, active: "left", ratio: 0.6 },
+      "host-1:project": { left: a, right: b, active: "left", ratio: 0.6 },
       "host-2:project": { left: b, right: c, active: "right", ratio: 0.5 },
     });
     store.close("host-1:project");
@@ -74,6 +79,18 @@ describe("paired project conversations", () => {
       right: b,
       active: "left",
       ratio: 0.4,
+    });
+  });
+
+  it("a deliberate drop in a standalone chat pairs with that chat, not a hidden linked member", () => {
+    const store = useProjectChatSplitStore.getState();
+    store.open("host:project", a, b);
+    store.place("host:project", c, a, "left");
+    expect(useProjectChatSplitStore.getState().byProject["host:project"]).toEqual({
+      left: a,
+      right: c,
+      active: "left",
+      ratio: 0.5,
     });
   });
 

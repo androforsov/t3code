@@ -12,13 +12,14 @@ export interface ProjectChatSplit {
   ratio: number;
 }
 
-/** Sidebar navigation replaces the focused pane, while selecting its peer only changes focus. */
-export function followThreadInSplit(split: ProjectChatSplit, threadId: ThreadId): ProjectChatSplit {
-  const active =
-    split.left === threadId ? "left" : split.right === threadId ? "right" : split.active;
-  return split[active] === threadId && split.active === active
-    ? split
-    : { ...split, [active]: threadId, active };
+/** Linked members reopen their saved pair; unrelated chats stay standalone. */
+export function followThreadInSplit(
+  split: ProjectChatSplit,
+  threadId: ThreadId,
+): ProjectChatSplit | null {
+  const active = split.left === threadId ? "left" : split.right === threadId ? "right" : null;
+  if (active === null) return null;
+  return split.active === active ? split : { ...split, active };
 }
 
 /** Dropping an existing peer moves it, never mounts a duplicate editor. */
@@ -99,7 +100,9 @@ export const useProjectChatSplitStore = create<ProjectChatSplitStore>()(
           const split = state.byProject[projectKey];
           if (!split) return state;
           const next = followThreadInSplit(split, threadId);
-          return next === split ? state : { byProject: { ...state.byProject, [projectKey]: next } };
+          return next === null || next === split
+            ? state
+            : { byProject: { ...state.byProject, [projectKey]: next } };
         }),
       focus: (projectKey, active) =>
         set((state) => {
@@ -140,12 +143,9 @@ export const useProjectChatSplitStore = create<ProjectChatSplitStore>()(
         }),
       place: (projectKey, current, dropped, side) =>
         set((state) => {
-          const next = placeThreadInSplit(
-            state.byProject[projectKey] ?? null,
-            current,
-            dropped,
-            side,
-          );
+          const saved = state.byProject[projectKey];
+          const visiblePair = saved ? followThreadInSplit(saved, current) : null;
+          const next = placeThreadInSplit(visiblePair, current, dropped, side);
           return next ? { byProject: { ...state.byProject, [projectKey]: next } } : state;
         }),
       close: (projectKey) =>

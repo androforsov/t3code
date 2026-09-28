@@ -37,7 +37,10 @@ either pane to replace that conversation with another thread from the same proje
 A thread already open in the other pane is excluded to keep each editor independent.
 
 Each pane has its own conversation, input, and controls. Click a pane to select it;
-keyboard shortcuts and sidebar navigation apply to that pane. Drag the divider to
+keyboard shortcuts apply to that pane. The two chats are remembered as a linked pair:
+click either in the sidebar to reopen both. Clicking an unrelated chat opens it alone
+without changing the saved pair. Dragging a new chat into a pane or using its selector
+explicitly changes the pair. Each project remembers one pair on this device. Drag the divider to
 resize it, or focus the divider and use Left/Right arrows. Double-click it to
 restore equal widths. Use the **×** in either pane header to close that pane and keep
 the other conversation. Closing a pane does not stop its agent.
