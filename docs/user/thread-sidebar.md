@@ -27,27 +27,29 @@ and worktree while you stay in the new thread composer. This requires a Git proj
 
 ## Open two conversations side by side
 
-Open a thread, then drag another thread from the project sidebar onto the left or right
-side of the conversation. The highlighted drop zone shows where it will open.
-Both threads must belong to the same project. You can also right-click a different thread in that
-project's sidebar and choose **Open beside current thread**.
+Open a chat, then drag another thread from the same project's sidebar onto the left
+or right side of the workspace. The highlighted drop zone shows where it will go;
+the two chats link automatically. Dragging another chat onto a pane replaces that
+pane. Thread placement is drag-and-drop only; the title bar has no thread dropdown.
 
-Each pane shows its provider and full thread title. Use the selector at the top of
-either pane to replace that conversation with another thread from the same project.
-A thread already open in the other pane is excluded to keep each editor independent.
+A bracket joins the linked names in the sidebar, with a shared broken-chain icon.
+Click that icon to unlink them. This changes only their saved layout, not their
+history or archive status. The tooltip names both chats; an unlink control remains
+on the visible row if its partner is hidden by a collapsed list.
 
-Each pane has its own conversation, input, and controls. Click a pane to select it;
-keyboard shortcuts apply to that pane. The two chats are remembered as a linked pair:
-click either in the sidebar to reopen both. Clicking an unrelated chat opens it alone
-without changing the saved pair. Dragging a new chat into a pane or using its selector
-explicitly changes the pair. Each project remembers one pair on this device. Drag the divider to
-resize it, or focus the divider and use Left/Right arrows. Double-click it to
-restore equal widths. Use the **×** in either pane header to close that pane and keep
-the other conversation. Closing a pane does not stop its agent.
+Each pane uses one title bar containing its provider logo/name, project and chat
+title, and the normal T3 controls. Its composer keeps the model selector and tools.
+Click a pane to focus it. Selecting either linked thread in the sidebar restores
+both; selecting an unrelated thread opens it alone without changing the pair.
+One pair is remembered per project on this device. Four panes are not enabled.
 
-The thread pair and divider are remembered per project on this device. On narrow
-windows, the Left/Right buttons switch between the paired conversations. Native
-mobile clients continue to use their existing single-conversation layout.
+Drag the divider, including its arrow control, to resize; click the arrows to swap.
+Keyboard Left/Right arrows resize a focused divider, and Home or a double-click
+restores equal widths. Use the **×** to close a pane and keep its companion.
+Closing or unlinking panes does not stop their agents.
+
+On narrow windows, the Left/Right controls select the visible pane. Native mobile
+clients retain their existing single-conversation layout.
 
 ## Pin and reorder threads
 

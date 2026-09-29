@@ -35,10 +35,8 @@ function allIds(state: ThreadActionMenuState): string[] {
 }
 
 describe("buildThreadActionMenuItems", () => {
-  it("offers a split only when a distinct thread in the current project can be paired", () => {
+  it("keeps pane placement out of the menu; linking is drag-only", () => {
     expect(ids(baseState)).not.toContain("open-beside");
-    expect(ids({ ...baseState, canOpenBeside: false })).not.toContain("open-beside");
-    expect(ids({ ...baseState, canOpenBeside: true })[0]).toBe("open-beside");
   });
 
   it("hides lifecycle items when the environment lacks the capabilities", () => {

@@ -1,4 +1,9 @@
-import { useChatPaneActive, useIsSplitChatPane } from "./chat/ChatPaneContext";
+import { ChatProviderBadge } from "./chat/ChatProviderBadge";
+import {
+  useChatPaneActive,
+  useIsSplitChatPane,
+  useChatPaneCloseControl,
+} from "./chat/ChatPaneContext";
 import { useLoadBalancedEnvironment } from "../hooks/useLoadBalancedEnvironment";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 import type { UsageLimitSourceSnapshots } from "@t3tools/contracts";
@@ -1477,6 +1482,7 @@ function releaseChatTimelineAnchor<T extends { readonly messageId: MessageId | n
 export default function ChatView(props: ChatViewProps) {
   const isChatPaneActive = useChatPaneActive();
   const isSplitChatPane = useIsSplitChatPane();
+  const paneCloseControl = useChatPaneCloseControl();
   const {
     environmentId,
     threadId,
@@ -9769,6 +9775,13 @@ export default function ChatView(props: ChatViewProps) {
             />
           ) : null}
           {!rightPanelControlsAtRoot && !rightPanelControlsInPanel ? panelLayoutControls : null}
+          {!reserveTitleBarControlInset ? (
+            <ChatProviderBadge
+              environmentId={activeThread.environmentId}
+              instanceId={activeThread.modelSelection.instanceId}
+              model={activeThread.modelSelection.model}
+            />
+          ) : null}
           <ChatHeader
             {...(!supportsPullRequests || activeProjectRepository === null
               ? {}
@@ -9797,6 +9810,7 @@ export default function ChatView(props: ChatViewProps) {
             onUpdateProjectScript={updateProjectScript}
             onDeleteProjectScript={deleteProjectScript}
           />
+          {paneCloseControl}
         </WorkspacePageHeader>
 
         {/* Main content area with optional plan sidebar */}

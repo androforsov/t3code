@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 // Read focus at event time. A pointer can activate a pane before React commits its next render.
 const alwaysActive = () => true;
@@ -8,4 +8,9 @@ export function useIsSplitChatPane() {
 }
 export function useChatPaneActive() {
   return useContext(ChatPaneContext);
+}
+
+export const ChatPaneCloseControlContext = createContext<ReactNode>(null);
+export function useChatPaneCloseControl() {
+  return useContext(ChatPaneCloseControlContext);
 }

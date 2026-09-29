@@ -7,8 +7,6 @@ import {
 } from "../projectChatDrag";
 import { ConversationDivider } from "./ConversationDivider";
 import { useVisibleProjectChats } from "../hooks/useVisibleProjectChats";
-import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
-import { ProviderInstanceIcon } from "./chat/ProviderInstanceIcon";
 import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
 import { createPaneComposerHandle } from "./chat/paneComposerHandle";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
@@ -17,7 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeftRightIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 
-import { useThreadShell, useThreadShells, useServerConfigs } from "../state/entities";
+import { useThreadShell, useThreadShells } from "../state/entities";
 import { buildThreadRouteParams, type ThreadRouteTarget } from "../threadRoutes";
 import {
   followThreadInSplit,
@@ -25,9 +23,8 @@ import {
   type ChatPaneSide,
 } from "../projectChatSplitStore";
 import { ThreadRouteView } from "./ThreadRouteView";
-import { ChatPaneContext } from "./chat/ChatPaneContext";
+import { ChatPaneContext, ChatPaneCloseControlContext } from "./chat/ChatPaneContext";
 import { Button } from "./ui/button";
-import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "./ui/select";
 import { SidebarInset } from "./ui/sidebar";
 
 function ChatPane({
@@ -37,9 +34,6 @@ function ChatPane({
   threadId,
   active,
   onActivate,
-  onReplace,
-  choices,
-  peerThreadId,
   onClose,
 }: {
   projectKey: string;
@@ -48,17 +42,8 @@ function ChatPane({
   threadId: ThreadId;
   active: boolean;
   onActivate: () => void;
-  onReplace: (id: ThreadId) => void;
-  choices: ReadonlyArray<{ id: ThreadId; title: string }>;
-  peerThreadId: ThreadId;
   onClose: () => void;
 }) {
-  const thread = useThreadShell(scopeThreadRef(environmentId, threadId));
-  const configs = useServerConfigs();
-  const provider = configs
-    .get(environmentId)
-    ?.providers.find((entry) => entry.instanceId === thread?.modelSelection.instanceId);
-  const providerLabel = provider ? resolveProviderInstanceDisplayName(provider) : "Agent";
   const isActive = useCallback(
     () => useProjectChatSplitStore.getState().byProject[projectKey]?.active === side,
     [projectKey, side],
@@ -81,56 +66,27 @@ function ChatPane({
       onFocusCapture={activate}
       className={`h-full min-h-0 min-w-0 flex-col overflow-hidden ${active ? "flex" : "hidden lg:flex"}`}
     >
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-background px-3 [-webkit-app-region:no-drag]">
-        {provider ? (
-          <ProviderInstanceIcon
-            driverKind={provider.driver}
-            displayName={providerLabel}
-            iconClassName="size-4"
-          />
-        ) : null}
-        <span className="text-xs text-muted-foreground">{providerLabel}</span>
-        <div className="min-w-0 flex-1">
-          <Select
-            value={threadId}
-            onValueChange={(value) => {
-              if (value) onReplace(value as ThreadId);
-            }}
+      <ChatPaneCloseControlContext
+        value={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Close ${side} conversation pane`}
+            onClick={onClose}
           >
-            <SelectTrigger aria-label={`Choose ${side} conversation`} size="sm">
-              <SelectValue>{thread?.title ?? "Choose a conversation"}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              {choices
-                .filter((choice) => choice.id !== peerThreadId)
-                .map((choice) => (
-                  <SelectItem key={choice.id} value={choice.id}>
-                    {choice.title}
-                  </SelectItem>
-                ))}
-            </SelectPopup>
-          </Select>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`Close ${side} conversation pane`}
-          onClick={onClose}
-        >
-          <XIcon />
-        </Button>
-        {thread?.session?.status === "running" ? (
-          <span className="text-xs text-muted-foreground">Working</span>
-        ) : null}
-      </div>
-      <ChatPaneContext value={isActive}>
-        <ComposerHandleContext value={composer.ref}>
-          <ThreadRouteView
-            embedded
-            target={{ kind: "server", threadRef: scopeThreadRef(environmentId, threadId) }}
-          />
-        </ComposerHandleContext>
-      </ChatPaneContext>
+            <XIcon />
+          </Button>
+        }
+      >
+        <ChatPaneContext value={isActive}>
+          <ComposerHandleContext value={composer.ref}>
+            <ThreadRouteView
+              embedded
+              target={{ kind: "server", threadRef: scopeThreadRef(environmentId, threadId) }}
+            />
+          </ComposerHandleContext>
+        </ChatPaneContext>
+      </ChatPaneCloseControlContext>
     </section>
   );
 }
@@ -174,16 +130,6 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
         replace: true,
       });
     }
-  };
-  const replace = (side: ChatPaneSide, threadId: ThreadId) => {
-    if (!projectKey || !current || !paired || !available.has(threadId)) return;
-    if (paired[side === "left" ? "right" : "left"] === threadId) return;
-    useProjectChatSplitStore.getState().replace(projectKey, side, threadId);
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(scopeThreadRef(current.environmentId, threadId)),
-      replace: true,
-    });
   };
   const close = () => {
     if (projectKey) useProjectChatSplitStore.getState().close(projectKey);
@@ -333,10 +279,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             threadId={paired.left}
             active={paired.active === "left"}
             onActivate={() => activate("left")}
-            onReplace={(id) => replace("left", id)}
             onClose={() => closePane("left")}
-            choices={projectThreads}
-            peerThreadId={paired.right}
           />
           <ConversationDivider
             key="divider"
@@ -353,10 +296,7 @@ export function ProjectChatWorkspace({ target }: { target: ThreadRouteTarget }) 
             threadId={paired.right}
             active={paired.active === "right"}
             onActivate={() => activate("right")}
-            onReplace={(id) => replace("right", id)}
             onClose={() => closePane("right")}
-            choices={projectThreads}
-            peerThreadId={paired.left}
           />
         </div>
       ) : (
