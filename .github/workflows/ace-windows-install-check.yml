@@ -1,0 +1,61 @@
+name: ACE Windows installer check
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Successful ACE Windows beta build run ID"
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+env:
+  ACE_SOURCE_BUILD_RUN: ${{ inputs.build_run_id }}
+jobs:
+  install:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: ace-windows-x64-beta
+          path: installer
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify and install exact installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(Get-ChildItem installer/ACE*.exe)
+          if ($files.Count -ne 1) { throw 'Expected exactly one installer.' }
+          $installer = $files[0]
+          $expected = (Get-Content installer/SHA256SUMS-Windows.txt -Raw).Trim().Split()[0]
+          if ((Get-FileHash $installer.FullName -Algorithm SHA256).Hash -ne $expected) { throw 'Installer checksum mismatch.' }
+          $destination = Join-Path $env:RUNNER_TEMP 'ace-installed-beta'
+          $p = Start-Process $installer.FullName -ArgumentList '/S',"/D=$destination" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Installer failed with exit code $($p.ExitCode)." }
+          if (-not (Test-Path (Join-Path $destination 'ACE.exe'))) { throw 'Installed ACE.exe missing.' }
+          "ACE_TEST_INSTALL=$destination" >> $env:GITHUB_ENV
+      - name: Check installed app and terminal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory reports | Out-Null
+          $exe = Join-Path $env:ACE_TEST_INSTALL 'ACE.exe'
+          ./scripts/smoke-ace-windows.ps1 -Executable $exe -ReportPath reports/installed-startup.json
+          $env:ELECTRON_RUN_AS_NODE = '1'
+          try {
+            & $exe scripts/ace-windows-native-probe.cjs $env:ACE_TEST_INSTALL
+            if ($LASTEXITCODE -ne 0) { throw 'Installed terminal probe failed.' }
+          } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+          @{ silentInstall = 'passed'; installedStartup = 'passed'; nativeTerminal = 'passed'; interactiveLoginTested = $false; sourceBuildRun = $env:ACE_SOURCE_BUILD_RUN } | ConvertTo-Json | Set-Content reports/summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ace-windows-install-check
+          path: reports/*.json
+          if-no-files-found: error
+          retention-days: 14
