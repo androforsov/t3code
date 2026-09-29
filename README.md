@@ -2,6 +2,19 @@
 
 An independent, open-source T3 Code fork for working with two linked conversations from the same project side by side.
 
+## Download and install ACE
+
+### [Download ACE for Mac — Apple Silicon (.zip)](https://github.com/androforsov/t3code/releases/download/ace-v0.1.11-beta.1/ACE-0.1.11-arm64.zip)
+
+For Macs with an Apple M-series chip. This is the **ACE0.1.11 beta app download**.
+
+1. Click the download link above.
+2. Double-click the downloaded ZIP to extract **ACE.app**.
+3. Drag **ACE.app** into **Applications**, then open it.
+4. Connect your own provider account if it is not already detected.
+
+This beta is not Apple-notarized. If macOS blocks opening it, follow [Apple’s opening instructions](https://support.apple.com/102445).
+
 The macOS app is named **ACE**. It keeps the original fork's `~/.harness` runtime directory, Harness profile, and `harness://` links so existing users keep their data. The upstream T3 installation can remain installed separately. ACE detects provider runtimes on each user's own computer and can reuse their existing local authentication. It does not include the maintainer's accounts, chats, server connection, or pairing credentials. Conversations are imported explicitly.
 
 Download the **[ACE0.1.11 local-host beta](https://github.com/androforsov/t3code/releases/tag/ace-v0.1.11-beta.1)** for Apple Silicon. It is not Apple-notarized; macOS may require opening approval. Local-host startup now avoids unnecessary Keychain access, but saved remote desktop connections may still require approval after updates. Read the [installation notes](docs/user/ace-installation.md). Automatic updates remain disabled.
