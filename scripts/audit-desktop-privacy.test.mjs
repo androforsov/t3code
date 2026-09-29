@@ -6,6 +6,21 @@ import { createPackage } from "@electron/asar";
 import { auditDesktopPrivacy, inspectReleaseEntry } from "./audit-desktop-privacy.mjs";
 
 describe("desktop release privacy", () => {
+  it("requires ASAR by default and still checks private files in an explicit loose runtime", async () => {
+    const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "ace-loose-privacy-"));
+    try {
+      await NodeFSP.writeFile(NodePath.join(root, "package.json"), '{"name":"public-runtime"}');
+      await expect(auditDesktopPrivacy(root)).rejects.toThrow("no packaged ASAR");
+      expect((await auditDesktopPrivacy(root, { requireArchive: false })).findings).toEqual([]);
+      await NodeFSP.writeFile(NodePath.join(root, "auth.json"), "{}");
+      expect((await auditDesktopPrivacy(root, { requireArchive: false })).findings).toEqual([
+        { path: "auth.json", reason: "private runtime/profile file" },
+      ]);
+    } finally {
+      await NodeFSP.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects private profiles and saved connection files", () => {
     for (const name of [
       ".codex/auth.json",

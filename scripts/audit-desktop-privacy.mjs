@@ -38,7 +38,7 @@ export function inspectReleaseEntry(name, bytes) {
   return findings;
 }
 
-export async function auditDesktopPrivacy(root) {
+export async function auditDesktopPrivacy(root, { requireArchive = true } = {}) {
   const findings = [];
   let files = 0;
   let archives = 0;
@@ -67,7 +67,7 @@ export async function auditDesktopPrivacy(root) {
       } else if (name.endsWith(".asar")) {
         archives++;
         for (const entry of listPackage(full)) {
-          const member = entry.replace(/^\//, "");
+          const member = entry.replace(/^[\\/]/, "");
           const meta = statFile(full, member, false);
           if (meta.files || meta.link) continue;
           await inspect(
@@ -81,7 +81,7 @@ export async function auditDesktopPrivacy(root) {
     }
   }
   await walk(root);
-  if (!archives)
+  if (requireArchive && !archives)
     throw new Error(
       "Privacy audit found no packaged ASAR; refusing to approve an uninspected release.",
     );
@@ -96,7 +96,11 @@ if (
     throw new Error(
       "Usage: node scripts/audit-desktop-privacy.mjs <packaged-app-or-dist-directory>",
     );
-  const result = await auditDesktopPrivacy(NodePath.resolve(process.argv[2]));
+  if (process.argv[3] && process.argv[3] !== "--loose-runtime")
+    throw new Error("Unknown privacy-audit option.");
+  const result = await auditDesktopPrivacy(NodePath.resolve(process.argv[2]), {
+    requireArchive: process.argv[3] !== "--loose-runtime",
+  });
   console.log(JSON.stringify(result, null, 2));
   if (result.findings.length) process.exitCode = 1;
 }

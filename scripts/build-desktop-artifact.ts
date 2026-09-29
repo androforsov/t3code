@@ -2611,7 +2611,7 @@ export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIcon
   return {
     macIconPng: "assets/harness/icon.png",
     linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
-    windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
+    windowsIconIco: "assets/harness/icon.ico",
   };
 }
 

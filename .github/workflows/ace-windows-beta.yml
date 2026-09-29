@@ -1,0 +1,142 @@
+name: ACE Windows beta build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Explicit beta version to build (does not publish a release)"
+        required: true
+        default: "0.1.12-beta.1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ace-windows-beta-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  ACE_BUILD_VERSION: ${{ inputs.version }}
+  NODE_OPTIONS: --max-old-space-size=6144
+
+jobs:
+  wsl:
+    name: Build matching Linux runtime for WSL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+      - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
+        with:
+          node-version-file: package.json
+          cache: false
+          run-install: false
+      - name: Validate version
+        run: node -e 'if(!/^\d+\.\d+\.\d+-beta\.\d+$/.test(process.env.ACE_BUILD_VERSION))process.exit(1)'
+      - name: Install dependencies
+        run: vp install --filter=t3... --filter=@t3tools/web... --filter=@t3tools/scripts...
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+      - name: Build server, client and resource monitor
+        run: |
+          set -euo pipefail
+          node scripts/update-release-package-versions.ts "$ACE_BUILD_VERSION"
+          vp run --filter t3 build
+          cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
+          mkdir -p cli-monitor
+          cp native/resource-monitor/target/x86_64-unknown-linux-gnu/release/t3-resource-monitor cli-monitor/
+      - name: Build standalone executable
+        env:
+          VP_NODE_VERSION: "26.8.2"
+        run: node apps/server/scripts/cli.ts build-exe --verbose
+      - name: Package and audit WSL runtime
+        run: |
+          set -euo pipefail
+          node scripts/build-cli-archive.ts --platform linux --arch x64 --version "$ACE_BUILD_VERSION" --resource-monitor-dir cli-monitor --output-dir wsl-runtime
+          mkdir -p wsl-audit
+          tar -xzf wsl-runtime/*.tar.gz -C wsl-audit
+          node scripts/audit-desktop-privacy.mjs wsl-audit --loose-runtime
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ace-wsl-runtime
+          path: wsl-runtime/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Build and check Windows x64
+    runs-on: windows-2025
+    needs: wsl
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+      - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
+        with:
+          node-version-file: package.json
+          cache: false
+          run-install: false
+      - name: Install dependencies
+        run: vp install --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/web... --filter=@t3tools/scripts...
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - name: Install required Spectre MSVC libraries
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -products * -latest -property installationPath
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          $p = Start-Process $setup -ArgumentList 'modify','--installPath',"`"$installPath`"",'--add','Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre','--quiet','--norestart' -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -notin @(0,3010)) { throw "MSVC setup failed: $($p.ExitCode)" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: ace-wsl-runtime
+          path: wsl-runtime
+      - name: Focused cross-platform checks
+        shell: pwsh
+        run: |
+          vp test run scripts/audit-desktop-privacy.test.mjs apps/web/src/projectChatSplitStore.test.ts apps/web/src/projectChatDrag.test.ts
+          if ($LASTEXITCODE -ne 0) { throw 'Focused checks failed.' }
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          node scripts/update-release-package-versions.ts $env:ACE_BUILD_VERSION
+          if ($LASTEXITCODE -ne 0) { throw 'Version update failed.' }
+          $wsl = (Get-ChildItem wsl-runtime/*.tar.gz | Select-Object -First 1).FullName
+          vp run dist:desktop:artifact --platform win --target nsis --arch x64 --build-version $env:ACE_BUILD_VERSION --wsl-runtime $wsl --output-dir release --keep-stage
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build or privacy audit failed.' }
+      - name: Packaged startup and safe artifact checks
+        shell: pwsh
+        run: |
+          $stage = Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $app = Join-Path $stage.FullName 'app/dist/win-unpacked/ACE.exe'
+          ./scripts/smoke-ace-windows.ps1 -Executable $app -ReportPath release/windows-startup-check.json
+          node scripts/audit-desktop-privacy.mjs (Split-Path $app) | Set-Content release/privacy-audit.json
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged privacy check failed.' }
+          Get-ChildItem release/ACE*.exe | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ace-windows-x64-beta
+          path: |
+            release/ACE*.exe
+            release/SHA256SUMS-Windows.txt
+            release/windows-startup-check.json
+            release/privacy-audit.json
+          if-no-files-found: error
+          retention-days: 14
