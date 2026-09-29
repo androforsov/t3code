@@ -13,6 +13,11 @@ describe("desktop release privacy", () => {
       "userdata/state.sqlite",
       "Resources/connection-catalog.json",
       "Resources/.env.local",
+      "Resources/.ace-signing/identity.json",
+      "Resources/signing-identity.p12",
+      "Resources/identity.pfx",
+      "Resources/signing.keychain-db",
+      "Resources/keychain-password",
     ]) {
       expect(inspectReleaseEntry(name).length).toBeGreaterThan(0);
     }

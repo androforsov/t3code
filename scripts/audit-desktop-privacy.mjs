@@ -5,7 +5,7 @@ import { listPackage, extractFile, statFile } from "@electron/asar";
 
 // This gate never logs content or credentials, only paths and finding categories.
 const privatePath =
-  /(^|\/)(?:\.codex|\.claude|\.harness|\.t3|userdata|\.env(?:\.[^/]*)?|auth\.json|\.credentials\.json|state\.sqlite(?:-[^/]*)?|server-runtime\.json|client-settings\.json|desktop-settings\.json|saved-environments\.json|connection-catalog\.json|login\.keychain-db|environment-id|Local Storage|Session Storage|Cookies|Local State)(?:\/|$)/i;
+  /(^|\/)(?:\.codex|\.claude|\.harness|\.t3|\.ace-signing|userdata|\.env(?:\.[^/]*)?|auth\.json|\.credentials\.json|state\.sqlite(?:-[^/]*)?|server-runtime\.json|client-settings\.json|desktop-settings\.json|saved-environments\.json|connection-catalog\.json|[^/]+\.(?:keychain(?:-db)?|p12|pfx)|keychain-password|environment-id|Local Storage|Session Storage|Cookies|Local State)(?:\/|$)/i;
 const textFile = /\.(?:[cm]?js|json|html|css|txt|md|ya?ml|toml|plist|pem|key)$/i;
 
 export function inspectReleaseEntry(name, bytes) {

@@ -3564,6 +3564,8 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   yield* validateBundledClientAssets(path.dirname(bundledClientEntry));
 
   yield* fs.makeDirectory(path.join(stageAppDir, "apps/desktop"), { recursive: true });
+  // A binary download must retain the upstream MIT notice, independently of GitHub source.
+  yield* fs.copyFile(path.join(repoRoot, "LICENSE"), path.join(stageAppDir, "LICENSE"));
   if (options.platform !== "win") {
     yield* fs.makeDirectory(path.join(stageAppDir, "apps/server"), { recursive: true });
   }

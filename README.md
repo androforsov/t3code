@@ -1,10 +1,14 @@
-# Harness
+# ACE — Agent Comms Expert
 
-A personal T3 Code fork for working with two conversations from the same project side by side.
+An independent, open-source T3 Code fork for working with two linked conversations from the same project side by side.
 
-The macOS app is named **Harness**, uses its own `~/.harness` runtime data and Electron profile, and registers `harness://` links. Automatic updates are disabled by default while this fork is under development. The original T3 installation can remain installed. Provider CLI logins are reused; conversations are imported explicitly.
+The macOS app is named **ACE**. It keeps the original fork's `~/.harness` runtime directory, Harness profile, and `harness://` links so existing users keep their data. The upstream T3 installation can remain installed separately. ACE detects provider runtimes on each user's own computer and can reuse their existing local authentication. It does not include the maintainer's accounts, chats, server connection, or pairing credentials. Conversations are imported explicitly.
 
-The code below retains upstream T3 documentation and license notices. Upstream: https://github.com/pingdotgg/t3code.
+ACE binary releases will appear on [this fork's Releases page](https://github.com/androforsov/t3code/releases). There is no public ACE binary release yet. Development builds are Apple Silicon only and are not Apple-notarized; macOS may require explicit opening approval, and Keychain approval across app updates remains under investigation. Automatic updates are disabled until a tested ACE update path is released.
+
+Only intentionally selected, tested versions are published. Ordinary source pushes do not distribute an app update. See [ACE release preparation](docs/operations/ace-release.md).
+
+The code below retains upstream T3 documentation and license notices. Upstream: https://github.com/pingdotgg/t3code. **Installation commands and download links in that upstream section install T3 Code, not ACE.** ACE is not an official T3 Tools release.
 
 ---
 
