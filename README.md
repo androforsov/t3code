@@ -4,16 +4,15 @@ An independent, open-source T3 Code fork for working with two linked conversatio
 
 ## Download and install ACE
 
-### [Download ACE for Mac — Apple Silicon (.zip)](https://github.com/androforsov/t3code/releases/download/ace-v0.1.11-beta.1/ACE-0.1.11-arm64.zip)
+| Computer                  | Direct app download                                                                                                                                 | Setup                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Mac with Apple Silicon    | **[Download ACE for Mac (.zip)](https://github.com/androforsov/t3code/releases/download/ace-v0.1.11-beta.1/ACE-0.1.11-arm64.zip)**                  | [Mac instructions](docs/user/ace-installation.md)             |
+| Windows — Intel/AMD64-bit | **[Download ACE for Windows (.exe)](https://github.com/androforsov/t3code/releases/download/ace-v0.1.12-windows-beta.1/ACE-0.1.12-beta.1-x64.exe)** | [Windows instructions](docs/user/ace-windows-installation.md) |
 
-For Macs with an Apple M-series chip. This is the **ACE0.1.11 beta app download**.
+**Mac:** Expand the ZIP, drag ACE.app into Applications, then open it.
+**Windows:** Run the EXE installer, then open ACE from the Start menu.
 
-1. Click the download link above.
-2. Double-click the downloaded ZIP to extract **ACE.app**.
-3. Drag **ACE.app** into **Applications**, then open it.
-4. Connect your own provider account if it is not already detected.
-
-This beta is not Apple-notarized. If macOS blocks opening it, follow [Apple’s opening instructions](https://support.apple.com/102445).
+Connect your own provider accounts if they are not already detected. Both downloads are betas. The Mac build is not Apple-notarized and the Windows installer is unsigned, so operating-system opening approval may be required. Windows has automated installation/startup/terminal coverage; manual Windows11 provider login and UI testing remain pending. Read the platform instructions before using important projects.
 
 The macOS app is named **ACE**. It keeps the original fork's `~/.harness` runtime directory, Harness profile, and `harness://` links so existing users keep their data. The upstream T3 installation can remain installed separately. ACE detects provider runtimes on each user's own computer and can reuse their existing local authentication. It does not include the maintainer's accounts, chats, server connection, or pairing credentials. Conversations are imported explicitly.
 
