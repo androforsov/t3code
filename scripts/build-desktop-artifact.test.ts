@@ -16,6 +16,8 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import {
   BundleNotSelfContainedError,
+  privateDesktopBuildEnvKeys,
+  DesktopReleasePrivacyError,
   BuildCommandFailedError,
   parseWslRuntimeArchiveMembers,
   DesktopDmgBackgroundSourceMissingError,
@@ -2347,4 +2349,19 @@ it("ignores trailing separators", () => {
     ancestorNodeModulesPaths("C:\\tmp\\probe\\app\\", "\\"),
     ancestorNodeModulesPaths("C:\\tmp\\probe\\app", "\\"),
   );
+});
+
+it("rejects private desktop build settings without exposing their values", () => {
+  const values = {
+    VITE_HTTP_URL: "https://private-host.invalid",
+    VITE_WS_URL: "wss://private-host.invalid",
+    VITE_AUTH_TOKEN: "synthetic-secret-123456",
+    VITE_CLERK_PUBLISHABLE_KEY: "pk_public",
+    VITE_EMPTY_SECRET: "",
+  };
+  const keys = privateDesktopBuildEnvKeys(values);
+  assert.deepEqual(keys, ["VITE_HTTP_URL", "VITE_WS_URL", "VITE_AUTH_TOKEN"]);
+  const error = new DesktopReleasePrivacyError({ keys });
+  assert.ok(!error.message.includes("synthetic-secret"));
+  assert.ok(!error.message.includes("private-host"));
 });

@@ -940,6 +940,25 @@ interface StagePackageJson {
 }
 
 export const STAGE_INSTALL_ARGS = ["install", "--prod"] as const;
+export function privateDesktopBuildEnvKeys(env: Readonly<Record<string, string | undefined>>) {
+  return Object.keys(env).filter(
+    (key) =>
+      Boolean(env[key]?.trim()) &&
+      (key === "VITE_HTTP_URL" ||
+        key === "VITE_WS_URL" ||
+        (key.startsWith("VITE_") && /TOKEN|SECRET|PASSWORD|PRIVATE_KEY|API_KEY/.test(key))),
+  );
+}
+
+export class DesktopReleasePrivacyError extends Schema.TaggedError<DesktopReleasePrivacyError>()(
+  "DesktopReleasePrivacyError",
+  { keys: Schema.Array(Schema.String) },
+) {
+  override get message(): string {
+    return `Desktop release would embed a server connection or credential setting: ${this.keys.join(", ")}. Values are redacted.`;
+  }
+}
+
 export const DESKTOP_ELECTRON_LANGUAGES = ["en-US"] as const;
 export const DESKTOP_FILE_EXCLUSIONS = [
   // T3 Code always passes the user's installed Claude executable to the SDK,
@@ -3354,6 +3373,8 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   const path = yield* Path.Path;
   const fs = yield* FileSystem.FileSystem;
   const hostPlatform = yield* HostProcessPlatform;
+  const privateEnvKeys = privateDesktopBuildEnvKeys(loadRepoEnv({ repoRoot }));
+  if (privateEnvKeys.length) return yield* new DesktopReleasePrivacyError({ keys: privateEnvKeys });
   if (hostPlatform === "linux" && options.platform === "linux") {
     yield* preflightLinuxDesktopBuild(options.arch);
   }
@@ -3865,6 +3886,14 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   }
 
   const stageEntries = yield* fs.readDirectory(stageDistDir);
+  // Audit the actual packaged ASAR and loose resources before exporting any release.
+  yield* runCommand(
+    ChildProcess.make(process.execPath, [
+      path.join(repoRoot, "scripts/audit-desktop-privacy.mjs"),
+      stageDistDir,
+    ]),
+    { label: "desktop release privacy audit", verbose: options.verbose },
+  );
   yield* fs.makeDirectory(options.outputDir, { recursive: true });
 
   const copiedArtifacts: string[] = [];
