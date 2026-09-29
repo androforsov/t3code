@@ -48,7 +48,10 @@ try {
   $process.Refresh()
   if (-not $process.HasExited) {
     $null = $process.CloseMainWindow()
-    if (-not $process.WaitForExit(15000)) { $process.Kill($true); $process.WaitForExit() }
+    if (-not $process.WaitForExit(15000)) {
+      $process.Kill($true)
+      if (-not $process.WaitForExit(5000)) { throw 'Owned smoke process failed to exit.' }
+    }
   }
   # Logs may contain short-lived pairing material; do not upload or print them.
 }

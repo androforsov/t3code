@@ -30,5 +30,7 @@ child.onExit(({ exitCode }) => {
     console.error("Packaged terminal probe failed.");
     process.exit(1);
   }
-  console.log(JSON.stringify({ packagedTerminal: "passed", modelCalls: 0 }));
+  process.stdout.write(JSON.stringify({ packagedTerminal: "passed", modelCalls: 0 }) + "\n", () =>
+    process.exit(0),
+  );
 });
