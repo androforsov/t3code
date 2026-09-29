@@ -6,9 +6,9 @@ The inherited T3 scheduled release workflow is gated to the upstream repository.
 
 ## Current release limits
 
-There is no public ACE installer release yet. Local packages target Apple Silicon Macs. They are not Apple-notarized, and the normal macOS downloaded-app approval can apply.
+ACE0.1.11 is the first deliberately approved local-host beta. Packages target Apple Silicon Macs. They are not Apple-notarized, and the normal macOS downloaded-app approval can apply.
 
-Keychain approval across builds is unresolved. A September 29, 2026 synthetic test on macOS 27 found that two binaries signed by the same self-signed certificate had identical designated requirements, but the changed binary could not read the first binary's synthetic credential without authorization. Restoring the original binary restored access. The item's partition policy included a per-binary code hash. This agrees with [Apple's Security implementation](https://github.com/apple-oss-distributions/Security/blob/main/securityd/src/clientid.cpp), which falls back to code-hash partitions for self-signed code. Do not describe persistent self-signing alone as a verified fix, remove Keychain protection, or promise that a download/update never requires macOS consent.
+ACE0.1.11 avoids the unnecessary Keychain check for empty local-host connection stores. Saved remote DESKTOP-client credential approval across builds remains unresolved. A September 29, 2026 synthetic test on macOS 27 found that two binaries signed by the same self-signed certificate had identical designated requirements, but the changed binary could not read the first binary's synthetic credential without authorization. Restoring the original binary restored access. The item's partition policy included a per-binary code hash. This agrees with [Apple's Security implementation](https://github.com/apple-oss-distributions/Security/blob/main/securityd/src/clientid.cpp), which falls back to code-hash partitions for self-signed code. Do not describe persistent self-signing alone as a verified fix, remove Keychain protection, or promise that a download/update never requires macOS consent.
 
 Preserve existing encrypted connections and browser cookies when changing credentials or packaging identity. The installed fork's inherited `t3code` encryption namespace cannot be renamed safely without a tested migration.
 
@@ -16,12 +16,14 @@ Preserve existing encrypted connections and browser cookies when changing creden
 
 1. Build the intended version from a reviewed commit. Run focused tests and package checks for changes in that release. Preserve the root MIT license and the generated third-party license notices in the binary.
 2. Run the packaged privacy audit below. Audit the actual unpacked download too, not only the developer's build directory.
-3. Verify first-run onboarding on a clean Mac user account or a clean Mac: no author project list, no preconfigured personal server, no author provider identity, and normal login with the recipient's own account. A fresh application folder in the author's account is insufficient to prove provider isolation because local provider authentication may still be discovered.
+3. For a fully verified release, verify first-run onboarding on a clean Mac user account or a clean Mac: no author project list, no preconfigured personal server, no author provider identity, and normal login with the recipient's own account. A fresh application folder in the author's account is insufficient to prove provider isolation because local provider authentication may still be discovered.
 4. Test relaunch and an upgrade on that test installation; record any Gatekeeper/Keychain prompts honestly. Existing installations must retain chats, remote pairing and settings.
 5. Prepare a release ZIP containing only the tested app, alongside installation notes, checksums and the exact source commit/tag. Do not upload staging folders, build logs, signing stores or developer profiles.
 6. Review the draft release and publish deliberately. Download its exact assets again and check the checksum and package audit. Do not enable automatic installation until its signature/upgrade behavior has been verified.
 
 See [ACE installation](../user/ace-installation.md) for the recipient-facing instructions.
+
+The first local-host beta was explicitly approved with limited app-profile startup testing on the maintainer’s Mac. State this limitation in its release notes; do not describe it as clean-Mac authentication isolation or full remote-client update verification.
 
 ## Privacy gate
 

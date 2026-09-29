@@ -4,7 +4,7 @@ An independent, open-source T3 Code fork for working with two linked conversatio
 
 The macOS app is named **ACE**. It keeps the original fork's `~/.harness` runtime directory, Harness profile, and `harness://` links so existing users keep their data. The upstream T3 installation can remain installed separately. ACE detects provider runtimes on each user's own computer and can reuse their existing local authentication. It does not include the maintainer's accounts, chats, server connection, or pairing credentials. Conversations are imported explicitly.
 
-ACE binary releases will appear on [this fork's Releases page](https://github.com/androforsov/t3code/releases). There is no public ACE binary release yet. Development builds are Apple Silicon only and are not Apple-notarized; macOS may require explicit opening approval, and Keychain approval across app updates remains under investigation. Automatic updates are disabled until a tested ACE update path is released.
+Download the **[ACE0.1.11 local-host beta](https://github.com/androforsov/t3code/releases/tag/ace-v0.1.11-beta.1)** for Apple Silicon. It is not Apple-notarized; macOS may require opening approval. Local-host startup now avoids unnecessary Keychain access, but saved remote desktop connections may still require approval after updates. Read the [installation notes](docs/user/ace-installation.md). Automatic updates remain disabled.
 
 Only intentionally selected, tested versions are published. Ordinary source pushes do not distribute an app update. See [ACE release preparation](docs/operations/ace-release.md).
 
