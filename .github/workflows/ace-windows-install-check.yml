@@ -49,8 +49,12 @@ jobs:
           ./scripts/smoke-ace-windows.ps1 -Executable $exe -ReportPath reports/installed-startup.json
           $env:ELECTRON_RUN_AS_NODE = '1'
           try {
-            & $exe scripts/ace-windows-native-probe.cjs $env:ACE_TEST_INSTALL
-            if ($LASTEXITCODE -ne 0) { throw 'Installed terminal probe failed.' }
+            $probe = (Resolve-Path scripts/ace-windows-native-probe.cjs).Path
+            $arguments = @("`"$probe`"", "`"$env:ACE_TEST_INSTALL`"")
+            $terminal = Start-Process $exe -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput reports/terminal-output.json -RedirectStandardError reports/terminal-stderr.log
+            if ($terminal.ExitCode -ne 0) { throw "Installed terminal probe failed with exit code $($terminal.ExitCode)." }
+            $terminalResult = Get-Content reports/terminal-output.json -Raw | ConvertFrom-Json
+            if ($terminalResult.packagedTerminal -ne 'passed') { throw 'Terminal success marker missing.' }
           } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
           @{ silentInstall = 'passed'; installedStartup = 'passed'; nativeTerminal = 'passed'; interactiveLoginTested = $false; sourceBuildRun = $env:ACE_SOURCE_BUILD_RUN } | ConvertTo-Json | Set-Content reports/summary.json
       - uses: actions/upload-artifact@v4

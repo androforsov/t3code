@@ -15,12 +15,14 @@ const child = pty.spawn(process.env.ComSpec || "cmd.exe", ["/d", "/c", "echo ACE
   env: process.env,
 });
 let received = false;
+let output = "";
 const deadline = setTimeout(() => {
   child.kill();
   process.exit(1);
 }, 15000);
 child.onData((data) => {
-  if (data.includes("ACE_TERMINAL_OK")) received = true;
+  output = (output + data).slice(-4096);
+  if (output.includes("ACE_TERMINAL_OK")) received = true;
 });
 child.onExit(({ exitCode }) => {
   clearTimeout(deadline);
