@@ -95,7 +95,7 @@ export class DesktopEnvironment extends Context.Service<
   }
 >()("@t3tools/desktop/app/DesktopEnvironment") {}
 
-const APP_BASE_NAME = "Harness";
+const APP_BASE_NAME = "ACE";
 
 function resolveDesktopAppStageLabel(input: {
   readonly isDevelopment: boolean;
@@ -188,6 +188,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     joinPath: path.join,
     t3Home: config.t3Home,
   });
+  // Keep the existing profile identity when the display name changes to ACE.
   const userDataDirName = isDevelopment ? "harness-dev" : "harness";
   const legacyUserDataDirName = isDevelopment ? "Harness (Dev)" : "Harness";
   const linuxApplicationsDir = path.join(

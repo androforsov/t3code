@@ -2615,8 +2615,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "Harness (Nightly)"
-    : (desktopPackageJson.productName ?? "T3 Code");
+    ? "ACE (Nightly)"
+    : (desktopPackageJson.productName ?? "ACE");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2641,7 +2641,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "Harness-${version}-${arch}.${ext}",
+    artifactName: "ACE-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2696,7 +2696,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "Harness",
+          name: "ACE",
           schemes: ["harness", "harness-dev"],
         },
       ],
@@ -2750,7 +2750,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // t3code:// OAuth callbacks to the app.
       protocols: [
         {
-          name: "Harness",
+          name: "ACE",
           schemes: ["harness", "harness-dev"],
         },
       ],
@@ -3669,7 +3669,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     t3codeCommitHash: commitHash,
     private: true,
     packageManager: rootPackageJson.packageManager,
-    description: "T3 Code desktop build",
+    description: "ACE — Agent Comms Expert, based on T3 Code",
     // Required by the .deb control file.
     homepage: "https://t3.codes",
     author: "T3 Tools",
