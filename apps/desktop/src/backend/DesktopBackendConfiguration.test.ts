@@ -307,7 +307,7 @@ describe("DesktopBackendConfiguration", () => {
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 
-  it.effect("resolveWsl reuses the primary's bootstrap token", () =>
+  it.effect("resolveWsl reuses the primary's token with an ACE-local WSL data directory", () =>
     withHarness(
       Effect.gen(function* () {
         const configuration = yield* DesktopBackendConfiguration.DesktopBackendConfiguration;
@@ -316,6 +316,8 @@ describe("DesktopBackendConfiguration", () => {
         const wsl = yield* configuration.resolveWsl({ port: 5000, distro: null });
 
         assert.equal(wsl.bootstrap.desktopBootstrapToken, primary.bootstrap.desktopBootstrapToken);
+        assert.equal(wsl.bootstrap.t3Home, "~/.harness");
+        assert.notEqual(wsl.bootstrap.t3Home, primary.bootstrap.t3Home);
       }),
     ),
   );

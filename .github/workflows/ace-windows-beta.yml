@@ -113,6 +113,8 @@ jobs:
         run: |
           vp test run scripts/audit-desktop-privacy.test.mjs apps/web/src/projectChatSplitStore.test.ts apps/web/src/projectChatDrag.test.ts
           if ($LASTEXITCODE -ne 0) { throw 'Focused checks failed.' }
+          vp test run apps/desktop/src/backend/DesktopBackendConfiguration.test.ts -t "ACE-local WSL data directory"
+          if ($LASTEXITCODE -ne 0) { throw 'WSL data isolation check failed.' }
       - name: Build Windows installer
         shell: pwsh
         run: |
