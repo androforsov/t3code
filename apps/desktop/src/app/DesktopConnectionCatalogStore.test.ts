@@ -28,12 +28,24 @@ const encodeLegacySavedEnvironments = Schema.encodeEffect(
     Schema.Struct({ version: Schema.Literal(1), records: Schema.Array(Schema.Unknown) }),
   ),
 );
-function makeSafeStorageLayer(available: boolean, failDecrypt: Ref.Ref<boolean> | null = null) {
+function makeSafeStorageLayer(
+  available: boolean,
+  failDecrypt: Ref.Ref<boolean> | null = null,
+  calls?: string[],
+) {
   return Layer.succeed(ElectronSafeStorage.ElectronSafeStorage, {
-    isEncryptionAvailable: Effect.succeed(available),
-    encryptString: (value) => Effect.succeed(textEncoder.encode(`encrypted:${value}`)),
+    isEncryptionAvailable: Effect.sync(() => {
+      calls?.push("availability");
+      return available;
+    }),
+    encryptString: (value) =>
+      Effect.sync(() => {
+        calls?.push("encrypt");
+        return textEncoder.encode(`encrypted:${value}`);
+      }),
     decryptString: (value) => {
       return Effect.gen(function* () {
+        calls?.push("decrypt");
         const decoded = textDecoder.decode(value);
         if (
           !decoded.startsWith("encrypted:") ||
@@ -55,6 +67,7 @@ function makeLayer(
   encryptionAvailable = true,
   failDecrypt: Ref.Ref<boolean> | null = null,
   fileSystemLayer: Layer.Layer<FileSystem.FileSystem> = NodeServices.layer,
+  safeStorageCalls?: string[],
 ) {
   const environmentLayer = DesktopEnvironment.layer({
     dirname: "/repo/apps/desktop/src",
@@ -71,7 +84,7 @@ function makeLayer(
       Layer.mergeAll(NodeServices.layer, DesktopConfig.layerTest({ T3CODE_HOME: baseDir })),
     ),
   );
-  const safeStorageLayer = makeSafeStorageLayer(encryptionAvailable, failDecrypt);
+  const safeStorageLayer = makeSafeStorageLayer(encryptionAvailable, failDecrypt, safeStorageCalls);
   const dependencies = Layer.mergeAll(
     environmentLayer,
     safeStorageLayer,
@@ -101,6 +114,31 @@ const withStore = <A, E, R>(
   }).pipe(Effect.provide(NodeServices.layer), Effect.scoped);
 
 describe("DesktopConnectionCatalogStore", () => {
+  for (const registry of ["missing", "empty"] as const) {
+    it.effect(`does not touch secure storage when the legacy registry is ${registry}`, () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "ace-empty-catalog-" });
+        const stateDir = path.join(baseDir, "userdata");
+        if (registry === "empty") {
+          yield* fs.makeDirectory(stateDir, { recursive: true });
+          yield* fs.writeFileString(
+            path.join(stateDir, "saved-environments.json"),
+            '{"version":1,"records":[]}',
+          );
+        }
+        const calls: string[] = [];
+        const store = yield* DesktopConnectionCatalogStore.DesktopConnectionCatalogStore.pipe(
+          Effect.provide(makeLayer(baseDir, true, null, NodeServices.layer, calls)),
+        );
+        assert.deepStrictEqual(yield* store.get, Option.none());
+        assert.deepStrictEqual(yield* store.get, Option.none());
+        assert.deepStrictEqual(calls, []);
+        assert.isFalse(yield* fs.exists(path.join(stateDir, "connection-catalog.json")));
+      }).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
+    );
+  }
   it.effect("persists, reads, and clears an encrypted connection catalog", () =>
     withStore(
       Effect.gen(function* () {
