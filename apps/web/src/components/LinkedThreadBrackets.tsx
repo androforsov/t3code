@@ -94,7 +94,7 @@ export function LinkedThreadBrackets({ children }: { children: ReactNode }) {
         >
           <svg
             aria-hidden
-            className="absolute inset-0 h-full w-full overflow-visible text-sidebar-foreground/45"
+            className="absolute inset-0 h-full w-full overflow-visible text-sidebar-border"
             fill="none"
             stroke="currentColor"
             strokeWidth="1"
@@ -114,7 +114,7 @@ export function LinkedThreadBrackets({ children }: { children: ReactNode }) {
                   type="button"
                   aria-label={connector.label}
                   data-thread-selection-safe
-                  className="pointer-events-auto absolute right-0 flex size-7 -translate-y-1/2 items-center justify-center rounded-md bg-sidebar text-sidebar-foreground/75 hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-foreground/60"
+                  className="pointer-events-auto absolute right-0 flex size-7 -translate-y-1/2 items-center justify-center rounded-md bg-transparent text-sidebar-foreground/75 hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-foreground/60"
                   style={{ top: "50%" }}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
@@ -124,7 +124,7 @@ export function LinkedThreadBrackets({ children }: { children: ReactNode }) {
                   }}
                 >
                   <svg
-                    className="size-4"
+                    className="size-3"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
