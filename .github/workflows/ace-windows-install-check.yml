@@ -49,6 +49,15 @@ jobs:
           ./scripts/smoke-ace-windows.ps1 -Executable $exe -ReportPath reports/installed-startup.json
           $env:ELECTRON_RUN_AS_NODE = '1'
           try {
+            $networkProbe = (Resolve-Path scripts/probe-socket-type-of-service.cjs).Path
+            $network = Start-Process $exe -ArgumentList "`"$networkProbe`"" -PassThru -RedirectStandardOutput reports/network-output.json -RedirectStandardError reports/network-stderr.log
+            if (-not $network.WaitForExit(60000)) {
+              $network.Kill($true)
+              throw 'Networking probe exceeded 60 seconds.'
+            }
+            if ($network.ExitCode -ne 0) { throw "Networking probe failed with exit code $($network.ExitCode)." }
+            $networkResult = Get-Content reports/network-output.json -Raw | ConvertFrom-Json
+            if ($networkResult.'native-error'.result.rejectedNativeCalls -lt 1) { throw 'Networking fault injection was not exercised.' }
             $probe = (Resolve-Path scripts/ace-windows-native-probe.cjs).Path
             $arguments = @("`"$probe`"", "`"$env:ACE_TEST_INSTALL`"")
             $terminal = Start-Process $exe -ArgumentList $arguments -PassThru -RedirectStandardOutput reports/terminal-output.json -RedirectStandardError reports/terminal-stderr.log
@@ -60,7 +69,7 @@ jobs:
             $terminalResult = Get-Content reports/terminal-output.json -Raw | ConvertFrom-Json
             if ($terminalResult.packagedTerminal -ne 'passed') { throw 'Terminal success marker missing.' }
           } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
-          @{ silentInstall = 'passed'; installedStartup = 'passed'; nativeTerminal = 'passed'; interactiveLoginTested = $false; sourceBuildRun = $env:ACE_SOURCE_BUILD_RUN } | ConvertTo-Json | Set-Content reports/summary.json
+          @{ silentInstall = 'passed'; installedStartup = 'passed'; nativeTerminal = 'passed'; networkingFaultInjection = 'passed'; interactiveLoginTested = $false; sourceBuildRun = $env:ACE_SOURCE_BUILD_RUN } | ConvertTo-Json | Set-Content reports/summary.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
