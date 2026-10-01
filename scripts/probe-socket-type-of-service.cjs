@@ -1,3 +1,4 @@
+/* oxlint-disable t3code/no-global-process-runtime -- Standalone probe measures the actual packaged runtime without loading Effect. */
 // Fault injection runs only in a disposable test process, never the live app.
 const NodeAssert = require("node:assert/strict");
 const NodeChildProcess = require("node:child_process");
